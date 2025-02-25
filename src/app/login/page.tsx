@@ -1,43 +1,37 @@
-"use client"
-
-import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Mail } from "lucide-react"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-
   return (
-    <div className="min-h-screen bg-muted p-4 flex items-center justify-center">
-      <Card className="w-full max-w-md p-6 border-brutal border-black shadow-brutal-lg bg-white">
-        <div className="space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">Welcome back</h1>
-            <p className="text-sm text-gray-500">Enter your email to continue</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="font-medium">Email address</label>
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border-brutal border-black shadow-brutal-sm"
-              />
-            </div>
-
-            <Button className="w-full bg-black text-white border-brutal border-black shadow-brutal-sm hover:shadow-brutal-md transition-shadow">
-              <Mail className="mr-2" size={20} />
-              Continue with Email
-            </Button>
-          </div>
+    <Card className="max-w-md mx-auto p-6 border-brutal border-brutalism-red bg-secondary shadow-brutal">
+      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      <form className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
+            Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            className="w-full border-brutal border-brutalism-green bg-text text-background"
+          />
         </div>
-      </Card>
-    </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-1">
+            Password
+          </label>
+          <Input
+            id="password"
+            type="password"
+            className="w-full border-brutal border-brutalism-green bg-text text-background"
+          />
+        </div>
+        <Button className="w-full bg-brutalism-blue hover:bg-brutalism-blue/90 text-white border-brutal border-brutalism-purple">
+          Log In
+        </Button>
+      </form>
+    </Card>
   )
 }
 
