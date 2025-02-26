@@ -10,6 +10,7 @@ interface RefreshRateDisplayProps {
   rate: string | undefined
   onRefresh: () => void
   isLoading?: boolean
+  countdownDuration?: number
 }
 
 export function RefreshRateDisplay({ 
@@ -17,13 +18,14 @@ export function RefreshRateDisplay({
   toCurrency, 
   rate, 
   onRefresh,
-  isLoading = false
+  isLoading = false,
+  countdownDuration = 10
 }: RefreshRateDisplayProps) {
-  const [countdown, setCountdown] = useState(10)
+  const [countdown, setCountdown] = useState(countdownDuration)
   
   useEffect(() => {
     // Reset countdown when component mounts or currencies change
-    setCountdown(10)
+    setCountdown(countdownDuration)
     
     // Set up interval to countdown every second
     const intervalId = setInterval(() => {
@@ -31,7 +33,7 @@ export function RefreshRateDisplay({
         if (prev <= 1) {
           // When countdown reaches 0, trigger refresh
           onRefresh()
-          return 10 // Reset timer
+          return countdownDuration // Reset timer
         }
         return prev - 1
       })
@@ -39,56 +41,46 @@ export function RefreshRateDisplay({
     
     // Clear interval on component unmount
     return () => clearInterval(intervalId)
-  }, [onRefresh, fromCurrency, toCurrency])
+  }, [onRefresh, fromCurrency, toCurrency, countdownDuration])
+  
+  // If we're loading or don't have a rate yet, show a loading state
+  if (isLoading || !rate) {
+    return (
+      <div className="w-full flex items-center justify-center relative h-12 bg-gray-100 rounded-md mb-4">
+        <div className="flex items-center gap-2">
+          <RefreshCw size={20} className="animate-spin text-gray-500" />
+          <span className="text-gray-600">Updating rate...</span>
+        </div>
+      </div>
+    )
+  }
   
   // Calculate the displayed rate
-  const displayRate = rate ? parseFloat(rate).toFixed(6) : "0.0000"
-  const reverseRate = rate ? (1/parseFloat(rate)).toFixed(6) : "0.0000"
+  const displayRate = parseFloat(rate).toFixed(6)
+  const reverseRate = (1/parseFloat(rate)).toFixed(6)
   
   return (
-    <div className="w-full flex items-center justify-center relative h-12 bg-purple-400 rounded-md mb-4">
-      {isLoading ? (
-        <div className="flex items-center gap-2">
-          <RefreshCw size={20} className="animate-spin" />
-          <span>Updating rate...</span>
-        </div>
-      ) : (
-        <>
-          {/* Countdown display in corner */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/20 rounded-full px-2 py-1">
-            <Clock size={12} />
-            <span className="text-xs font-medium">{countdown}s</span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                onRefresh()
-                setCountdown(10)
-              }} 
-              className="h-6 w-6 p-0 hover:bg-white/20 rounded-full"
-            >
-              <RefreshCw size={12} />
-            </Button>
-          </div>
-          
-          {/* Arrow icon */}
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-            className="text-white"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <polyline points="19 12 12 19 5 12" />
-          </svg>
-        </>
-      )}
+    <div className="w-full flex items-center justify-between relative h-12 bg-gray-100 rounded-md mb-4 px-4">
+      <span className="font-medium text-sm">
+        1 {fromCurrency} = {displayRate} {toCurrency}
+      </span>
+      
+      {/* Countdown display */}
+      <div className="flex items-center gap-1 bg-white/70 rounded-full px-2 py-1">
+        <Clock size={12} className="text-gray-500" />
+        <span className="text-xs font-medium text-gray-600">{countdown}s</span>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => {
+            onRefresh()
+            setCountdown(countdownDuration)
+          }} 
+          className="h-6 w-6 p-0 hover:bg-white/80 rounded-full"
+        >
+          <RefreshCw size={12} className="text-gray-600" />
+        </Button>
+      </div>
     </div>
   )
 }

@@ -162,7 +162,7 @@ export default function ExchangePage() {
             <span className="text-black">
               1 {fromCurrency} = {Number(quote.rate).toFixed(4)} {toCurrency}
             </span>
-            <FeesDialog mode={mode} fees={quote.fees} />
+            <FeesDialog mode ={mode} fees={quote.fees} />
           </div>
         )}
 

@@ -6,16 +6,18 @@ import { cn } from "@/lib/utils"
 interface ExchangeToggleProps {
   mode: "onramp" | "offramp"
   onChange: (mode: "onramp" | "offramp") => void
+  className?: string
 }
 
-export function ExchangeToggle({ mode, onChange }: ExchangeToggleProps) {
+export function ExchangeToggle({ mode, onChange, className }: ExchangeToggleProps) {
   return (
-    <div className="inline-flex p-1 bg-muted border-brutal border-black shadow-brutal-sm">
+    <div className={cn("inline-flex p-1 bg-gray-100 rounded-md", className)}>
       <Button
         variant="ghost"
         className={cn(
-          "flex-1 px-6 py-2 text-sm font-medium transition-colors",
-          mode === "onramp" && "bg-white shadow-brutal-sm border-brutal border-black",
+          "flex-1 px-6 py-2 text-sm font-medium transition-colors rounded-sm",
+          mode === "onramp" && "bg-white shadow-sm border border-gray-200",
+          mode !== "onramp" && "text-gray-600"
         )}
         onClick={() => onChange("onramp")}
       >
@@ -24,8 +26,9 @@ export function ExchangeToggle({ mode, onChange }: ExchangeToggleProps) {
       <Button
         variant="ghost"
         className={cn(
-          "flex-1 px-6 py-2 text-sm font-medium transition-colors",
-          mode === "offramp" && "bg-white shadow-brutal-sm border-brutal border-black",
+          "flex-1 px-6 py-2 text-sm font-medium transition-colors rounded-sm",
+          mode === "offramp" && "bg-white shadow-sm border border-gray-200",
+          mode !== "offramp" && "text-gray-600"
         )}
         onClick={() => onChange("offramp")}
       >
@@ -34,4 +37,3 @@ export function ExchangeToggle({ mode, onChange }: ExchangeToggleProps) {
     </div>
   )
 }
-

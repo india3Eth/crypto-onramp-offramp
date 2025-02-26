@@ -1,21 +1,65 @@
+// src/utils/signature.ts
 import crypto from "crypto"
 
-export function generateSignature(method: string, path: string): string {
-    const apiSecretKey = process.env.UNLIMIT_API_SECRET_KEY;
-    if (!apiSecretKey) {
-      throw new Error("UNLIMIT_API_SECRET_KEY environment variable not set.");
-    }
+/**
+ * Generate HMAC-SHA256 signature for API requests
+ * 
+ * @param method HTTP method (GET, POST, etc.)
+ * @param path API endpoint path
+ * @param payload Optional request payload
+ * @returns Base64 encoded signature
+ */
+export function generateSignature(method: string, path: string, payload?: any): string {
+  const apiSecretKey = process.env.UNLIMIT_API_SECRET_KEY
   
-    // Ensure method is uppercase as per documentation
-
-    const dataToVerify = method.toUpperCase() + path;
-  console.log(dataToVerify)
-    // Create HMAC signature using SHA256
-    const hmac = crypto.createHmac("sha256", apiSecretKey);
-    hmac.update(dataToVerify);
-    const signature = hmac.digest("hex");
-  
-    console.log("Signature:", signature);
-    return signature;
+  if (!apiSecretKey) {
+    throw new Error("UNLIMIT_API_SECRET_KEY environment variable not set")
   }
   
+  // Ensure method is uppercase
+  const uppercaseMethod = method.toUpperCase()
+  
+  // Create the string to sign (method + path + payload if provided)
+  let stringToSign = `${uppercaseMethod}${path}`
+  
+  if (payload) {
+    // Ensure consistent JSON format by sorting keys
+    const orderedPayload = JSON.stringify(payload, Object.keys(payload).sort())
+    stringToSign += orderedPayload
+  }
+  
+  // Create HMAC with SHA256
+  const hmac = crypto.createHmac("sha256", apiSecretKey)
+  hmac.update(stringToSign)
+  
+  // Return base64 encoded signature
+  return hmac.digest("base64")
+}
+
+/**
+ * Verify the signature of an incoming webhook or callback
+ * 
+ * @param signature The signature from the request header
+ * @param body The raw request body as a string
+ * @returns Boolean indicating if signature is valid
+ */
+export function verifySignature(signature: string, body: string): boolean {
+  const apiSecretKey = process.env.UNLIMIT_API_SECRET_KEY
+  
+  if (!apiSecretKey) {
+    throw new Error("UNLIMIT_API_SECRET_KEY environment variable not set")
+  }
+  
+  // Create HMAC with SHA256
+  const hmac = crypto.createHmac("sha256", apiSecretKey)
+  hmac.update(body)
+  
+  // Generate expected signature
+  const expectedSignature = hmac.digest("base64")
+  
+  // Compare signatures using timing-safe comparison
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  )
+}

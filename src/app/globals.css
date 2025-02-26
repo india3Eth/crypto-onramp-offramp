@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -14,26 +10,22 @@ body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -41,24 +33,19 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
@@ -67,6 +54,98 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Neo-brutalism custom utilities */
+@layer utilities {
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  
+  /* Floating animation */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
+  
+  /* Neo-brutalism shadows */
+  .shadow-brutal-sm {
+    box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
+  }
+  
+  .shadow-brutal {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.8);
+  }
+  
+  .shadow-brutal-lg {
+    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.8);
+  }
+  
+  /* Neo-brutalism borders */
+  .border-brutal {
+    border-width: 3px;
+    border-color: black;
+    border-style: solid;
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Neo-brutalism button styles */
+  .btn-neo {
+    @apply bg-white border-brutal shadow-brutal font-bold px-4 py-2 transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:bg-gray-100;
+  }
+  
+  .btn-neo-primary {
+    @apply bg-blue-400 border-brutal shadow-brutal font-bold px-4 py-2 transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:bg-blue-500;
+  }
+  
+  .btn-neo-danger {
+    @apply bg-red-400 border-brutal shadow-brutal font-bold px-4 py-2 transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:bg-red-500;
+  }
+  
+  .btn-neo-success {
+    @apply bg-green-400 border-brutal shadow-brutal font-bold px-4 py-2 transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:bg-green-500;
+  }
+  
+  /* Neo-brutalism card styles */
+  .card-neo {
+    @apply bg-white border-brutal shadow-brutal p-4 rounded-none;
+  }
+  
+  /* Neo-brutalism input styles */
+  .input-neo {
+    @apply border-brutal shadow-brutal-sm bg-white px-3 py-2 focus:outline-none;
+  }
+  
+  /* Widget frame styling */
+  .widget-frame {
+    @apply bg-white rounded-3xl border-brutal shadow-brutal-lg overflow-hidden w-full max-w-md h-[650px] mx-auto flex flex-col;
+  }
+  
+  .widget-header {
+    @apply bg-blue-400 border-b-brutal p-4 flex justify-between items-center;
+  }
+  
+  .widget-content {
+    @apply flex-grow overflow-y-auto p-4 scrollbar-hide;
+  }
+  
+  .widget-footer {
+    @apply bg-gray-100 border-t-brutal p-2;
   }
 }
