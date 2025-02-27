@@ -1,196 +1,227 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useRouter } from "next/navigation"
+import { Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useForm } from "@/hooks/use-form"
-import { AlertCircle, Eye, EyeOff } from "lucide-react"
-
-interface LoginFormData {
-  email: string
-  password: string
-  rememberMe: boolean
-}
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-  
-  // Form validation rules
-  const validationRules = {
-    email: [
-      {
-        validate: (value: string) => !!value,
-        errorMessage: "Email is required"
-      },
-      {
-        validate: (value: string) => 
-          !value || /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value),
-        errorMessage: "Invalid email address"
-      }
-    ],
-    password: [
-      {
-        validate: (value: string) => !!value,
-        errorMessage: "Password is required"
-      },
-      {
-        validate: (value: string) => !value || value.length >= 8,
-        errorMessage: "Password must be at least 8 characters"
-      }
-    ]
+  const router = useRouter()
+  const [step, setStep] = useState<"email" | "otp">("email")
+  const [email, setEmail] = useState("")
+  const [otp, setOtp] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
+
+  // Validate email format
+  const isValidEmail = (email: string) => {
+    return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)
   }
-  
-  // Mock login function - would be replaced with actual API call
-  const handleLogin = async (data: LoginFormData) => {
-    // Simulate API call
-    return new Promise<void>((resolve, reject) => {
+
+  // Handle email submission
+  const handleRequestOTP = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Clear previous errors
+    setError(null)
+    
+    // Validate email
+    if (!email) {
+      setError("Email is required")
+      return
+    }
+    
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+    
+    setIsSubmitting(true)
+    
+    try {
+      // Simulate API call to request OTP
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // For demo: we'll always succeed in requesting an OTP
+      setOtpSent(true)
+      
+      // Move to OTP verification step after 1 second
       setTimeout(() => {
-        // For demo purposes, always succeed if email contains "success"
-        // Otherwise fail with error message
-        if (data.email.includes("success")) {
-          resolve()
-          // Redirect would happen here
-          window.location.href = "/exchange"
-        } else {
-          setAuthError("Invalid email or password")
-          reject(new Error("Authentication failed"))
-        }
+        setStep("otp")
+        setIsSubmitting(false)
       }, 1000)
-    })
+      
+    } catch (error) {
+      setError("Failed to send OTP. Please try again.")
+      setIsSubmitting(false)
+    }
   }
-  
-  const {
-    formData,
-    errors,
-    isSubmitting,
-    handleChange,
-    handleSubmit
-  } = useForm<LoginFormData>({
-    initialValues: {
-      email: "",
-      password: "",
-      rememberMe: false
-    },
-    validationRules,
-    onSubmit: handleLogin
-  })
-  
-  // Toggle password visibility
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
+
+  // Handle OTP verification
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Clear previous errors
+    setError(null)
+    
+    // Validate OTP
+    if (!otp) {
+      setError("Please enter the verification code")
+      return
+    }
+    
+    if (otp.length !== 6) {
+      setError("Verification code must be 6 digits")
+      return
+    }
+    
+    setIsSubmitting(true)
+    
+    try {
+      // Simulate API call to verify OTP
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // For demo: any 6-digit code works
+      router.push("/exchange")
+      
+    } catch (error) {
+      setError("Invalid verification code. Please try again.")
+      setIsSubmitting(false)
+    }
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
-      <Card className="w-full max-w-md p-6 border border-gray-200 shadow-md bg-white">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to your account to continue
-          </CardDescription>
-        </CardHeader>
+
+  // Email input step
+  const renderEmailStep = () => (
+    <div>
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center border-2 border-black mb-4">
+          <Mail className="h-8 w-8 text-blue-600" />
+        </div>
+        <h1 className="text-2xl font-bold">Log in to your account</h1>
+        <p className="text-center text-gray-600 mt-1">We'll send you a code to verify your email</p>
+      </div>
+      
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border-2 border-red-600 rounded-md flex items-start">
+          <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </div>
+      )}
+      
+      {otpSent && (
+        <div className="mb-6 p-4 bg-green-100 border-2 border-green-600 rounded-md flex items-start">
+          <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-green-600">Verification code sent to your email!</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleRequestOTP} className="space-y-6">
+        <div className="space-y-2">
+          <label htmlFor="email" className="font-bold">
+            Email address
+          </label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]"
+            disabled={isSubmitting || otpSent}
+          />
+        </div>
         
-        <CardContent>
-          {authError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-600">{authError}</p>
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`border ${errors.email ? 'border-red-300' : 'border-gray-300'}`}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-600 mt-1">{errors.email}</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`border pr-10 ${errors.password ? 'border-red-300' : 'border-gray-300'}`}
-                />
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs text-red-600 mt-1">{errors.password}</p>
-              )}
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                id="rememberMe"
-                name="rememberMe"
-                type="checkbox"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-                Remember me
-              </label>
-            </div>
-          </form>
-        </CardContent>
+        <Button 
+          type="submit"
+          className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+          disabled={isSubmitting || otpSent}
+        >
+          {isSubmitting ? "Sending..." : otpSent ? "Code sent!" : "Send verification code"}
+        </Button>
+      </form>
+    </div>
+  )
+
+  // OTP verification step
+  const renderOTPStep = () => (
+    <div>
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-16 h-16 bg-green-200 rounded-full flex items-center justify-center border-2 border-black mb-4">
+          <CheckCircle className="h-8 w-8 text-green-600" />
+        </div>
+        <h1 className="text-2xl font-bold">Verify your email</h1>
+        <p className="text-center text-gray-600 mt-1">
+          We sent a verification code to <span className="font-semibold">{email}</span>
+        </p>
+      </div>
+      
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border-2 border-red-600 rounded-md flex items-start">
+          <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleVerifyOTP} className="space-y-6">
+        <div className="space-y-2">
+          <label htmlFor="otp" className="font-bold">
+            Verification code
+          </label>
+          <Input
+            id="otp"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="Enter 6-digit code"
+            className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] text-center text-lg tracking-widest"
+          />
+          <p className="text-sm text-gray-500">The code will expire in 10 minutes</p>
+        </div>
         
-        <CardFooter className="flex flex-col space-y-4">
+        <div className="space-y-4">
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            type="submit"
+            className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
             disabled={isSubmitting}
-            onClick={handleSubmit}
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Verifying..." : "Verify and continue"} 
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </span>
-          </div>
-        </CardFooter>
+          <Button 
+            type="button"
+            variant="ghost"
+            className="w-full text-black hover:bg-gray-100"
+            onClick={() => {
+              setStep("email")
+              setOtp("")
+              setError(null)
+              setOtpSent(false)
+            }}
+          >
+            Change email
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
+        {step === "email" ? renderEmailStep() : renderOTPStep()}
       </Card>
+      
+      {/* Demo helper - remove this in production */}
+      <div className="text-center text-xs text-gray-500">
+        <p>For demo: Enter any valid email, then use any 6-digit code</p>
+      </div>
     </div>
   )
 }
