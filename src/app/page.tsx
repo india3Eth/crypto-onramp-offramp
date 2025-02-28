@@ -15,9 +15,9 @@ export default function HomePage() {
   const [formData, setFormData] = useState<ExchangeFormData>({
     fromAmount: "50",
     fromCurrency: "USD",
-    toCurrency: "USDC",
+    toCurrency: "USDT",
     paymentMethodType: "CARD",
-    chain: "ETH",
+    chain: "BEP20",
   })
   
   // Use the custom hook for quote fetching
@@ -39,13 +39,13 @@ export default function HomePage() {
       setFormData(prev => ({
         ...prev,
         fromCurrency: "USD",
-        toCurrency: "USDC",
+        toCurrency: "USDT",
       }))
     } else {
       setFormData(prev => ({
         ...prev,
-        fromCurrency: "USDC",
-        toCurrency: "USD",
+        fromCurrency: "USDT",
+        toCurrency: "EUR",
       }))
     }
   }
@@ -105,7 +105,7 @@ export default function HomePage() {
                     <>
                       <SelectItem value="BTC">BTC</SelectItem>
                       <SelectItem value="ETH">ETH</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
+                      <SelectItem value="USDT">USDT</SelectItem>
                     </>
                   )}
                 </SelectContent>
@@ -187,7 +187,7 @@ export default function HomePage() {
                     <>
                       <SelectItem value="BTC">BTC</SelectItem>
                       <SelectItem value="ETH">ETH</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
+                      <SelectItem value="USDT">USDT</SelectItem>
                     </>
                   ) : (
                     <>
@@ -211,11 +211,11 @@ export default function HomePage() {
               <SelectTrigger className="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                 <div className="flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
-                  <span>{formData.paymentMethodType === "SEPA" ? "SEPA Transfer" : "Card Payment"}</span>
+                  <span>{formData.paymentMethodType === "SEPATRANSFER" ? "SEPA Transfer" : "Card Payment"}</span>
                 </div>
               </SelectTrigger>
               <SelectContent className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
-                <SelectItem value="SEPA">SEPA Transfer</SelectItem>
+                <SelectItem value="SEPATRANSFER">SEPA Transfer</SelectItem>
                 <SelectItem value="CARD">Card Payment</SelectItem>
               </SelectContent>
             </Select>
