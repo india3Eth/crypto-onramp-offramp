@@ -27,6 +27,7 @@ export default function LoginPage() {
     
     // Clear previous errors
     setError(null)
+    console.log("Login attempt for email:", email);
     
     // Validate email
     if (!email) {
@@ -42,10 +43,25 @@ export default function LoginPage() {
     setIsSubmitting(true)
     
     try {
-      // Simulate API call to request OTP
-      await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // For demo: we'll always succeed in requesting an OTP
+      // Make real API call to request OTP
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+
+      const data = await response.json();
+
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send verification code");
+      }
+      
+      // Successfully requested OTP
       setOtpSent(true)
       
       // Move to OTP verification step after 1 second
@@ -55,11 +71,12 @@ export default function LoginPage() {
       }, 1000)
       
     } catch (error) {
-      setError("Failed to send OTP. Please try again.")
+      // console.error("Login error:", error);
+      setError( "Failed to send OTP. Please try again.")
       setIsSubmitting(false)
     }
   }
-
+  
   // Handle OTP verification
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,18 +98,30 @@ export default function LoginPage() {
     setIsSubmitting(true)
     
     try {
-      // Simulate API call to verify OTP
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Make API call to verify OTP
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
       
-      // For demo: any 6-digit code works
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to verify code");
+      }
+      
+      // Successfully verified, redirect to exchange page
       router.push("/exchange")
       
     } catch (error) {
-      setError("Invalid verification code. Please try again.")
+      console.error("Verification error:", error);
+      // setError(error.message || "Invalid verification code. Please try again.")
       setIsSubmitting(false)
     }
   }
-
   // Email input step
   const renderEmailStep = () => (
     <div>

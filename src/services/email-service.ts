@@ -49,7 +49,7 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
       });
-      
+   
       console.log(`Verification email sent to ${email}`);
     } catch (error) {
       console.error('Failed to send verification email:', error);
