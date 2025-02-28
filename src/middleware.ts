@@ -3,12 +3,12 @@ import { authMiddleware } from '@/utils/auth'
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
-  '/exchange',
   '/kyc',
 ]
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
+  '/',
   '/login',
   '/about',
   '/support',

@@ -43,7 +43,6 @@ export default function LoginPage() {
     setIsSubmitting(true)
     
     try {
-      
       // Make real API call to request OTP
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -53,9 +52,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email }),
       });
       
-
       const data = await response.json();
-
       
       if (!response.ok) {
         throw new Error(data.error || "Failed to send verification code");
@@ -71,8 +68,7 @@ export default function LoginPage() {
       }, 1000)
       
     } catch (error) {
-      // console.error("Login error:", error);
-      setError( "Failed to send OTP. Please try again.")
+      setError("Failed to send OTP. Please try again.")
       setIsSubmitting(false)
     }
   }
@@ -113,15 +109,16 @@ export default function LoginPage() {
         throw new Error(data.error || "Failed to verify code");
       }
       
-      // Successfully verified, redirect to exchange page
-      router.push("/exchange")
+      // Successfully verified, redirect to home page
+      router.push("/")
       
     } catch (error) {
       console.error("Verification error:", error);
-      // setError(error.message || "Invalid verification code. Please try again.")
+      setError("Invalid verification code. Please try again.")
       setIsSubmitting(false)
     }
   }
+  
   // Email input step
   const renderEmailStep = () => (
     <div>

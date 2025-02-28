@@ -33,7 +33,7 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
   }, [])
 
   const menuItems = [
-    { href: "/exchange", label: "Exchange", icon: <Home size={20} /> },
+    { href: "/", label: "Exchange", icon: <Home size={20} /> },
     { href: "/kyc", label: "Verify", icon: <User size={20} /> },
     { href: "/about", label: "About Us", icon: <HelpCircle size={20} /> },
     { href: "/support", label: "Support", icon: <CreditCard size={20} /> },
