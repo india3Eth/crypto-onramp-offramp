@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    
     // Parse request body
     const body = await request.json();
     const { fromAmount, fromCurrency, toCurrency, paymentMethodType, chain } = body;
