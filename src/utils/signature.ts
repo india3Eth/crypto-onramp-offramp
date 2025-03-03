@@ -33,7 +33,7 @@ export function generateSignature(method: string, path: string, payload?: any): 
   hmac.update(stringToSign)
   
   // Return base64 encoded signature
-  return hmac.digest("base64")
+  return hmac.digest("hex")
 }
 
 /**

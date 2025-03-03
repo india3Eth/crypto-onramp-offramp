@@ -1,27 +1,8 @@
 "use server"
 
 import type { ExchangeFormData, Quote } from "@/types/exchange"
-import crypto from "crypto"
+import { generateSignature } from "@/utils/signature"
 
-// Generate signature for API requests
-function generateSignature(method: string, path: string): string {
-  const apiSecret = process.env.UNLIMIT_API_SECRET_KEY
-  
-  if (!apiSecret) {
-    throw new Error("API Secret is missing")
-  }
-  
-  // Create the string to sign (path + payload if provided)
-  let stringToSign = method+path
-  console.log("String to sign",stringToSign)
-  
-  // Create HMAC with SHA256
-  const hmac = crypto.createHmac("sha256", apiSecret)
-  hmac.update(stringToSign)
-  
-  // Return base64 encoded signature
-  return hmac.digest("hex")
-}
 
 export async function createQuote(data: ExchangeFormData): Promise<Quote> {
   // Validate input
@@ -54,7 +35,7 @@ export async function createQuote(data: ExchangeFormData): Promise<Quote> {
     console.log("signature : ",signature)
     // Make API request
     const response = await fetch(`${process.env.UNLIMIT_API_BASE_URL || "https://api-sandbox.gatefi.com"}/v1/external/quotes`, {
-      method: "POST",
+      method,
       headers: {
         "Content-Type": "application/json",
         "api-key": apiKey,

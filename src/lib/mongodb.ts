@@ -43,7 +43,7 @@ export async function getDb() {
 // Collections
 export const COLLECTIONS = {
   USERS: 'users',
-  CONFIG: 'config',
-  QUOTES: 'quotes',
-  TRANSACTIONS: 'transactions',
+  COUNTRIES: 'countries',
+  PAYMENTS: 'payments',
+  CRYPTO: 'crypto',
 }
