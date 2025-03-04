@@ -1,3 +1,13 @@
+// Base quote request interface
+export interface QuoteRequest {
+  fromAmount: string;
+  fromCurrency: string;
+  toCurrency: string;
+  paymentMethodType: string;
+  chain?: string;
+}
+
+// Response from API
 export interface Quote {
   quoteId: string;
   fromCurrency: string;
@@ -9,7 +19,7 @@ export interface Quote {
   fees: Fee[];
   chain?: string;
   expiration: string;
-  metadata: any;
+  metadata: Record<string, any>;
 }
 
 export interface Fee {

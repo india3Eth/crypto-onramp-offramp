@@ -6,10 +6,9 @@ import crypto from "crypto"
  * 
  * @param method HTTP method (GET, POST, etc.)
  * @param path API endpoint path
- * @param payload Optional request payload
- * @returns Base64 encoded signature
+ * @returns Hex encoded signature
  */
-export function generateSignature(method: string, path: string, payload?: any): string {
+export function generateSignature(method: string, path: string): string {
   const apiSecretKey = process.env.UNLIMIT_API_SECRET_KEY
   
   if (!apiSecretKey) {
@@ -21,12 +20,7 @@ export function generateSignature(method: string, path: string, payload?: any): 
   
   // Create the string to sign (method + path + payload if provided)
   let stringToSign = `${uppercaseMethod}${path}`
-  
-  if (payload) {
-    // Ensure consistent JSON format by sorting keys
-    const orderedPayload = JSON.stringify(payload, Object.keys(payload).sort())
-    stringToSign += orderedPayload
-  }
+
   
   // Create HMAC with SHA256
   const hmac = crypto.createHmac("sha256", apiSecretKey)

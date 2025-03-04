@@ -56,7 +56,7 @@ export default function HomePage() {
   const [optionsError, setOptionsError] = useState<string | null>(null)
   
   // Use the custom hook for quote fetching
-  const { quote, isLoading, error, refreshQuote } = useQuote(formData)
+  const { quote, isLoading, error, refreshInterval ,refreshQuote } = useQuote(formData)
   
   // Fetch crypto options based on mode (buy/sell)
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function HomePage() {
         
         // Extract unique fiat currencies from payment methods
         const uniqueFiatCurrencies = new Set<string>()
-        data.paymentMethods.forEach(method => {
+        data.paymentMethods.forEach((method: { availableFiatCurrencies: any[] }) => {
           method.availableFiatCurrencies.forEach(currency => uniqueFiatCurrencies.add(currency))
         })
         
@@ -171,22 +171,20 @@ export default function HomePage() {
       setConfigResult(result)
     })
   }
+// Set up countdown timer for quote refresh
+useEffect(() => {
+  const timer = setInterval(() => {
+    setCountdown(prev => {
+      if (prev <= 1) {
+        refreshQuote()
+        return refreshInterval
+      }
+      return prev - 1
+    })
+  }, 1000)
   
-  // Set up countdown timer for quote refresh
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          refreshQuote()
-          return 10
-        }
-        return prev - 1
-      })
-    }, 1000)
-    
-    return () => clearInterval(timer)
-  }, [refreshQuote])
-  
+  return () => clearInterval(timer)
+}, [refreshQuote])  
   // Update default currency values when options are loaded
   useEffect(() => {
     // Skip if no options loaded yet or if loading
