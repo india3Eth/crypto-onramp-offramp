@@ -29,14 +29,6 @@ export interface Fee {
   currency: string;
 }
 
-export interface ExchangeFormData {
-  fromAmount: string;
-  fromCurrency: string;
-  toCurrency: string;
-  paymentMethodType: string;
-  chain?: string;
-  toAmount: string;
-}
 
 // Onramp transaction types
 export interface OnrampTransaction {

@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowUpDown, Wallet, RefreshCw, Clock, AlertCircle, Download, Loader2 } from "lucide-react"
-import type { ExchangeFormData } from "@/types/exchange"
+import type { QuoteRequest } from "@/types/exchange"
 import { createQuote } from "@/app/actions/quote"
 import { fetchAndStoreConfigs } from "@/app/actions/config"
 
@@ -20,8 +20,11 @@ export default function HomePage() {
   // Track which field was last modified (fromAmount or toAmount)
   const [lastModifiedField, setLastModifiedField] = useState<"fromAmount" | "toAmount">("fromAmount")
   
+  // Store previous parameters to avoid unnecessary API calls
+  const previousParamsRef = useRef<string>('');
+  
   // Single combined state for form data
-  const [formData, setFormData] = useState<ExchangeFormData>({
+  const [formData, setFormData] = useState<QuoteRequest>({
     fromAmount: "50",
     toAmount: "",
     fromCurrency: "USD",
@@ -34,7 +37,8 @@ export default function HomePage() {
   const [isLoadingQuote, setIsLoadingQuote] = useState(false)
   const [quoteError, setQuoteError] = useState<string | null>(null)
   const [quote, setQuote] = useState<any>(null)
-  const [countdown, setCountdown] = useState(10)
+  const refreshInterval = 30
+  const [countdown, setCountdown] = useState(refreshInterval)
   
   // Config update state
   const [isPending, startTransition] = useTransition()
@@ -61,16 +65,31 @@ export default function HomePage() {
     return request
   }
   
+  // Validate if inputs are sufficient for a quote
+  const hasValidInputs = () => {
+    // Must have either fromAmount or toAmount, and both must not be 0
+    const hasFromAmount = !!formData.fromAmount && parseFloat(formData.fromAmount) > 0;
+    const hasToAmount = !!formData.toAmount && parseFloat(formData.toAmount) > 0;
+    
+    if (!hasFromAmount && !hasToAmount) return false;
+    
+    // Must have currencies and payment method
+    return !!(formData.fromCurrency && formData.toCurrency && formData.paymentMethodType);
+  }
+  
   // Debounced API call for any input change
   useEffect(() => {
-    // Skip if we don't have valid inputs yet
-    if (
-      (!formData.fromAmount && !formData.toAmount) || 
-      !formData.fromCurrency || 
-      !formData.toCurrency || 
-      !formData.paymentMethodType ||
-      isLoadingOptions
-    ) {
+    // Skip if we don't have valid inputs yet or still loading options
+    if (!hasValidInputs() || isLoadingOptions) {
+      return;
+    }
+    
+    // Create a representation of current parameters for comparison
+    const quoteRequest = prepareQuoteRequest();
+    const currentParams = JSON.stringify(quoteRequest);
+    
+    // Skip if parameters haven't changed
+    if (currentParams === previousParamsRef.current) {
       return;
     }
     
@@ -78,9 +97,6 @@ export default function HomePage() {
       try {
         setIsLoadingQuote(true);
         setQuoteError(null);
-        
-        // Prepare request with only one amount field based on what was last modified
-        const quoteRequest = prepareQuoteRequest();
         
         // Call API with prepared request
         const result = await createQuote(quoteRequest);
@@ -96,15 +112,20 @@ export default function HomePage() {
         setQuote(result);
         
         // Reset countdown
-        setCountdown(10);
+        setCountdown(refreshInterval);
+        
+        // Update the previous parameters ref
+        previousParamsRef.current = currentParams;
         
       } catch (error) {
         console.error("Error fetching quote:", error);
-        setQuoteError(error instanceof Error ? error.message : "Failed to get quote");
+        setQuoteError(error instanceof Error 
+          ? error.message 
+          : "Failed to get quote. Please check your inputs and try again.");
       } finally {
         setIsLoadingQuote(false);
       }
-    }, 1000); // 1 second debounce
+    }, 2000); 
     
     return () => clearTimeout(debounceTimer);
   }, [
@@ -126,7 +147,7 @@ export default function HomePage() {
       setCountdown(prev => {
         if (prev <= 1) {
           refreshQuote();
-          return 10;
+          return refreshInterval;
         }
         return prev - 1;
       });
@@ -137,6 +158,11 @@ export default function HomePage() {
   
   // Refresh quote manually
   const refreshQuote = async () => {
+    // Skip if inputs are invalid
+    if (!hasValidInputs()) {
+      return;
+    }
+    
     try {
       setIsLoadingQuote(true);
       setQuoteError(null);
@@ -153,11 +179,16 @@ export default function HomePage() {
       }));
       
       setQuote(result);
-      setCountdown(10);
+      setCountdown(refreshInterval);
+      
+      // Update the previous parameters ref
+      previousParamsRef.current = JSON.stringify(quoteRequest);
       
     } catch (error) {
       console.error("Error refreshing quote:", error);
-      setQuoteError(error instanceof Error ? error.message : "Failed to get quote");
+      setQuoteError(error instanceof Error 
+        ? error.message 
+        : "Failed to refresh quote. Please try again.");
     } finally {
       setIsLoadingQuote(false);
     }
@@ -213,6 +244,9 @@ export default function HomePage() {
       }))
       setLastModifiedField("toAmount");
     }
+    
+    // Reset previous params to force a quote fetch after mode change
+    previousParamsRef.current = '';
   }
   
   // Handle update configs button click
@@ -246,6 +280,9 @@ export default function HomePage() {
         toCurrency: fiatOptions.includes(prev.toCurrency) ? prev.toCurrency : fiatOptions[0],
       }))
     }
+    
+    // Reset previous params to force a quote fetch after currency options change
+    previousParamsRef.current = '';
   }, [isLoadingOptions, fiatOptions, cryptoOptions, mode])
 
   return (
@@ -305,8 +342,8 @@ export default function HomePage() {
                         ...prev, 
                         fromCurrency: value
                       }))
-                      // When currency changes, maintain the last modified field
-                      // No need to clear either amount
+                      // Reset previous params to force a quote fetch after currency change
+                      previousParamsRef.current = '';
                     }}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
@@ -398,8 +435,8 @@ export default function HomePage() {
                         ...prev, 
                         toCurrency: value
                       }))
-                      // When currency changes, maintain the last modified field
-                      // No need to clear either amount
+                      // Reset previous params to force a quote fetch after currency change
+                      previousParamsRef.current = '';
                     }}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
@@ -429,10 +466,14 @@ export default function HomePage() {
                 <label className="font-bold">{mode === "buy" ? "Payment Method" : "Payout Method"}</label>
                 <Select
                   value={formData.paymentMethodType}
-                  onValueChange={(value) => setFormData((prev) => ({ 
-                    ...prev, 
-                    paymentMethodType: value
-                  }))}
+                  onValueChange={(value) => {
+                    setFormData((prev) => ({ 
+                      ...prev, 
+                      paymentMethodType: value
+                    }))
+                    // Reset previous params to force a quote fetch after payment method change
+                    previousParamsRef.current = '';
+                  }}
                 >
                   <SelectTrigger className="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                     <div className="flex items-center gap-2">
