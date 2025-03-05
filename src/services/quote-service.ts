@@ -12,9 +12,9 @@ export class QuoteService {
    */
   async createQuote(data: QuoteRequest): Promise<Quote> {
     // Validate input
-    if (!data.fromAmount || parseFloat(data.fromAmount) <= 0) {
-      throw new Error('Invalid amount');
-    }
+    // if (!data.fromAmount || parseFloat(data.fromAmount) <= 0) {
+    //   throw new Error('Invalid amount');
+    // }
     
     try {
       // Call API to get quote

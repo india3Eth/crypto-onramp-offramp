@@ -33,7 +33,8 @@ export interface ExchangeFormData {
   fromCurrency: string;
   toCurrency: string;
   paymentMethodType: string;
-  chain?: string; // Make chain optional here to match the API interfaces
+  chain?: string;
+  toAmount: string;
 }
 
 // Onramp transaction types

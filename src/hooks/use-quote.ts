@@ -14,7 +14,7 @@ export function useQuote(
   const [quote, setQuote] = useState<Quote | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [countdown, setCountdown] = useState(0);
   
   // Set default options
   const { 
@@ -36,7 +36,7 @@ export function useQuote(
     try {
       const result = await createQuote(formData);
       setQuote(result);
-   
+      setCountdown(refreshInterval);
     } catch (err) {
       console.error("Error fetching quote:", err);
       setError(err instanceof Error 
@@ -51,7 +51,7 @@ export function useQuote(
   // Manual refresh function
   const refreshQuote = useCallback(() => {
     fetchQuote();
-  
+    setCountdown(refreshInterval);
   }, [fetchQuote, refreshInterval]);
   
   // Auto-fetch quote when form data changes (with debounce)
@@ -63,13 +63,28 @@ export function useQuote(
     return () => clearTimeout(timer);
   }, [formData, fetchQuote]);
   
-
+  // Handle countdown timer for auto-refresh
+  useEffect(() => {
+    if (!autoRefresh || !quote) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          fetchQuote();
+          return refreshInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [autoRefresh, fetchQuote, quote, refreshInterval]);
   
   return {
     quote,
     isLoading,
     error,
-    refreshInterval,
+    countdown,
     refreshQuote
   };
 }

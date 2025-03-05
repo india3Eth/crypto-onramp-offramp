@@ -6,136 +6,155 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowUpDown, Wallet, RefreshCw, Clock, AlertCircle, Download, Loader2 } from "lucide-react"
-import type { Quote, ExchangeFormData } from "@/types/exchange"
-import { useQuote } from "@/hooks/use-quote"
+import type { ExchangeFormData } from "@/types/exchange"
+import { createQuote } from "@/app/actions/quote"
 import { fetchAndStoreConfigs } from "@/app/actions/config"
 
-// Define interfaces for API responses
-interface CryptoOption {
-  id: string;
-  network?: string;
-  chain?: string;
-  paymentMethods: string[];
-  supportedFiatCurrencies: string[];
-}
-
-interface PaymentMethodOption {
-  id: string;
-  onRampSupported: boolean;
-  offRampSupported: boolean;
-  availableFiatCurrencies: string[];
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  count: number;
-  error?: string;
-  [key: string]: any;
-}
+// Custom hooks for API data
+import { useCryptoOptions } from "@/hooks/use-crypto-options"
+import { usePaymentMethods } from "@/hooks/use-payment-methods"
 
 export default function HomePage() {
   const [mode, setMode] = useState<"buy" | "sell">("buy")
-  const [countdown, setCountdown] = useState(10)
+  
+  // Single combined state for form data
   const [formData, setFormData] = useState<ExchangeFormData>({
     fromAmount: "50",
+    toAmount: "",
     fromCurrency: "USD",
     toCurrency: "USDT",
     paymentMethodType: "CARD",
     chain: "BEP20",
   })
   
+  // UI states
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [quote, setQuote] = useState<any>(null)
+  const [countdown, setCountdown] = useState(10)
+  
   // Config update state
   const [isPending, startTransition] = useTransition()
   const [configResult, setConfigResult] = useState<{ success?: boolean; message?: string } | null>(null)
   
-  // API data state
-  const [cryptoOptions, setCryptoOptions] = useState<CryptoOption[]>([])
-  const [fiatOptions, setFiatOptions] = useState<string[]>([])
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([])
-  const [isLoadingOptions, setIsLoadingOptions] = useState(true)
-  const [optionsError, setOptionsError] = useState<string | null>(null)
+  // Use custom hooks for API data
+  const { cryptoOptions, isLoading: isLoadingCrypto, error: cryptoError } = useCryptoOptions(mode === "buy" ? "buy" : "sell")
+  const { paymentMethods, fiatOptions, isLoading: isLoadingPayments, error: paymentsError } = usePaymentMethods(mode === "buy" ? "buy" : "sell")
   
-  // Use the custom hook for quote fetching
-  const { quote, isLoading, error, refreshInterval ,refreshQuote } = useQuote(formData)
+  const isLoadingOptions = isLoadingCrypto || isLoadingPayments
+  const optionsError = cryptoError || paymentsError
   
-  // Fetch crypto options based on mode (buy/sell)
+  // Debounced API call for any input change
   useEffect(() => {
-    const fetchCryptoOptions = async () => {
-      try {
-        setIsLoadingOptions(true)
-        setOptionsError(null)
-        
-        // Fetch crypto options based on current mode
-        const endpoint = mode === "buy" ? "/api/crypto/onramp" : "/api/crypto/offramp"
-        const response = await fetch(endpoint)
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch crypto options: ${response.statusText}`)
-        }
-        
-        const data = await response.json() as ApiResponse<CryptoOption[]>
-        
-        if (!data.success) {
-          throw new Error(data.error || "Failed to fetch crypto options")
-        }
-        
-        setCryptoOptions(data.cryptos || [])
-      } catch (err) {
-        console.error("Error fetching crypto options:", err)
-        setOptionsError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setIsLoadingOptions(false)
-      }
+    // Skip if we don't have valid inputs yet
+    if (
+      !formData.fromCurrency || 
+      !formData.toCurrency || 
+      !formData.paymentMethodType ||
+      (formData.fromAmount === "" && formData.toAmount === "") ||
+      isLoadingOptions
+    ) {
+      return;
     }
     
-    fetchCryptoOptions()
-  }, [mode])
-  
-  // Fetch payment methods based on mode (buy/sell)
-  useEffect(() => {
-    const fetchPaymentMethods = async () => {
+    const debounceTimer = setTimeout(async () => {
       try {
-        // Only set loading if we don't already have payment methods
-        if (paymentMethods.length === 0) {
-          setIsLoadingOptions(true)
-        }
-        setOptionsError(null)
+        setIsLoadingQuote(true);
+        setQuoteError(null);
         
-        const response = await fetch(`/api/crypto/payment-methods?type=${mode === "buy" ? "onramp" : "offramp"}`)
+        // Call API with current form data
+        const result = await createQuote(formData);
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch payment methods: ${response.statusText}`)
-        }
+        // Update the form with the response data
+        setFormData(prev => ({
+          ...prev,
+          fromAmount: result.fromAmount,
+          toAmount: result.toAmount
+        }));
         
-        const data = await response.json() as ApiResponse<PaymentMethodOption[]>
+        // Store the full quote
+        setQuote(result);
         
-        if (!data.success) {
-          throw new Error(data.error || "Failed to fetch payment methods")
-        }
+        // Reset countdown
+        setCountdown(10);
         
-        setPaymentMethods(data.paymentMethods || [])
-        
-        // Extract unique fiat currencies from payment methods
-        const uniqueFiatCurrencies = new Set<string>()
-        data.paymentMethods.forEach((method: { availableFiatCurrencies: any[] }) => {
-          method.availableFiatCurrencies.forEach(currency => uniqueFiatCurrencies.add(currency))
-        })
-        
-        setFiatOptions(Array.from(uniqueFiatCurrencies).sort())
-      } catch (err) {
-        console.error("Error fetching payment methods:", err)
-        setOptionsError(err instanceof Error ? err.message : "Unknown error")
+      } catch (error) {
+        console.error("Error fetching quote:", error);
+        setQuoteError(error instanceof Error ? error.message : "Failed to get quote");
       } finally {
-        setIsLoadingOptions(false)
+        setIsLoadingQuote(false);
       }
-    }
+    }, 1000); // 1 second debounce
     
-    fetchPaymentMethods()
-  }, [mode])
+    return () => clearTimeout(debounceTimer);
+  }, [
+    formData.fromAmount, 
+    formData.toAmount,
+    formData.fromCurrency,
+    formData.toCurrency,
+    formData.paymentMethodType,
+    formData.chain,
+    isLoadingOptions
+  ]);
   
-  // Handle amount input change
-  const handleAmountChange = (value: string) => {
-    setFormData(prev => ({ ...prev, fromAmount: value }))
+  // Set up countdown timer for quote refresh
+  useEffect(() => {
+    if (!quote) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          refreshQuote();
+          return 10;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [quote]);
+  
+  // Refresh quote manually
+  const refreshQuote = async () => {
+    try {
+      setIsLoadingQuote(true);
+      setQuoteError(null);
+      
+      const result = await createQuote(formData);
+      
+      setFormData(prev => ({
+        ...prev,
+        fromAmount: result.fromAmount,
+        toAmount: result.toAmount
+      }));
+      
+      setQuote(result);
+      setCountdown(10);
+      
+    } catch (error) {
+      console.error("Error refreshing quote:", error);
+      setQuoteError(error instanceof Error ? error.message : "Failed to get quote");
+    } finally {
+      setIsLoadingQuote(false);
+    }
+  };
+  
+  // Handle fromAmount input change
+  const handleFromAmountChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      fromAmount: value,
+      toAmount: ""  // Clear this so API calculates it
+    }));
+  }
+  
+  // Handle toAmount input change
+  const handleToAmountChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      toAmount: value,
+      fromAmount: ""  // Clear this so API calculates it
+    }));
   }
   
   // Handle swapping currencies and toggle between buy/sell
@@ -145,20 +164,25 @@ export default function HomePage() {
     setMode(newMode)
     
     // Reset form data based on new mode
-    // Will be populated with default values after options are loaded
     if (newMode === "buy") {
+      // For onramp (buy): default to entering fiat amount
       setFormData(prev => ({
         ...prev,
+        fromAmount: "50",
+        toAmount: "",
         fromCurrency: fiatOptions[0] || "USD",
         toCurrency: "USDT",
         paymentMethodType: "CARD",
       }))
     } else {
+      // For offramp (sell): default to entering fiat amount to receive
       setFormData(prev => ({
         ...prev,
+        fromAmount: "",
+        toAmount: "50",
         fromCurrency: "USDT",
         toCurrency: fiatOptions[0] || "USD",
-        paymentMethodType: "SEPATRANSFER",
+        paymentMethodType: "SEPA",
       }))
     }
   }
@@ -171,20 +195,7 @@ export default function HomePage() {
       setConfigResult(result)
     })
   }
-// Set up countdown timer for quote refresh
-useEffect(() => {
-  const timer = setInterval(() => {
-    setCountdown(prev => {
-      if (prev <= 1) {
-        refreshQuote()
-        return refreshInterval
-      }
-      return prev - 1
-    })
-  }, 1000)
   
-  return () => clearInterval(timer)
-}, [refreshQuote])  
   // Update default currency values when options are loaded
   useEffect(() => {
     // Skip if no options loaded yet or if loading
@@ -248,20 +259,25 @@ useEffect(() => {
 
           {!isLoadingOptions && !optionsError && (
             <>
-              {/* From currency */}
+              {/* From currency (You Pay/Send) */}
               <div className="space-y-2">
                 <label className="font-bold">{mode === "buy" ? "You Pay" : "You Send"}</label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
                     value={formData.fromAmount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
+                    onChange={(e) => handleFromAmountChange(e.target.value)}
                     className="flex-grow border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]"
                     placeholder="0.00"
                   />
                   <Select
                     value={formData.fromCurrency}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, fromCurrency: value }))}
+                    onValueChange={(value) => setFormData((prev) => ({ 
+                      ...prev, 
+                      fromCurrency: value,
+                      // Clear toAmount to trigger recalculation
+                      toAmount: ""
+                    }))}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                       <SelectValue placeholder="Currency" />
@@ -297,12 +313,12 @@ useEffect(() => {
                 
                 {/* Middle - Rate display */}
                 <div className="flex-grow text-center">
-                  {error ? (
+                  {quoteError ? (
                     <div className="flex items-center justify-center text-red-500 text-sm">
                       <AlertCircle className="h-4 w-4 mr-1" />
                       <span>Error getting quote</span>
                     </div>
-                  ) : isLoading ? (
+                  ) : isLoadingQuote ? (
                     <span className="text-sm font-medium">Loading rates...</span>
                   ) : quote ? (
                     <span className="text-sm font-medium">
@@ -326,10 +342,7 @@ useEffect(() => {
                   <Clock className="h-3 w-3 mr-1" />
                   <span className="text-xs font-medium">{countdown}s</span>
                   <button 
-                    onClick={() => {
-                      refreshQuote()
-                      setCountdown(10)
-                    }}
+                    onClick={refreshQuote}
                     className="ml-1"
                   >
                     <RefreshCw className="h-3 w-3" />
@@ -337,19 +350,25 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* To currency */}
+              {/* To currency (You Get/Receive) */}
               <div className="space-y-2">
                 <label className="font-bold">{mode === "buy" ? "You Get" : "You Receive"}</label>
                 <div className="flex gap-2">
                   <Input
-                    type="text"
-                    value={isLoading ? "Loading..." : error ? "Error" : quote?.toAmount || "0.00"}
-                    readOnly
-                    className="flex-grow border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)] bg-gray-100"
+                    type="number"
+                    value={formData.toAmount}
+                    onChange={(e) => handleToAmountChange(e.target.value)}
+                    className="flex-grow border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]"
+                    placeholder="0.00"
                   />
                   <Select
                     value={formData.toCurrency}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, toCurrency: value }))}
+                    onValueChange={(value) => setFormData((prev) => ({ 
+                      ...prev, 
+                      toCurrency: value,
+                      // Clear fromAmount to trigger recalculation
+                      fromAmount: ""
+                    }))}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                       <SelectValue placeholder="Currency" />
@@ -378,7 +397,13 @@ useEffect(() => {
                 <label className="font-bold">{mode === "buy" ? "Payment Method" : "Payout Method"}</label>
                 <Select
                   value={formData.paymentMethodType}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, paymentMethodType: value }))}
+                  onValueChange={(value) => setFormData((prev) => ({ 
+                    ...prev, 
+                    paymentMethodType: value,
+                    // Keep amounts but trigger recalculation
+                    ...(prev.fromAmount ? {} : { toAmount: "" }),
+                    ...(prev.toAmount ? {} : { fromAmount: "" })
+                  }))}
                 >
                   <SelectTrigger className="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                     <div className="flex items-center gap-2">
@@ -399,9 +424,9 @@ useEffect(() => {
               </div>
 
               {/* Error display */}
-              {error && (
+              {quoteError && (
                 <div className="p-3 bg-red-100 text-red-600 border-2 border-red-600 rounded-md">
-                  {error}
+                  {quoteError}
                 </div>
               )}
 
@@ -410,10 +435,10 @@ useEffect(() => {
                 className={`w-full text-white font-bold py-3 transition-transform active:translate-y-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] ${
                   mode === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
                 }`}
-                disabled={!quote || isLoading}
+                disabled={!quote || isLoadingQuote}
                 onClick={() => window.location.href = "/login"}
               >
-                {isLoading ? "Getting quote..." : "Continue"}
+                {isLoadingQuote ? "Getting quote..." : "Continue"}
               </Button>
             </>
           )}
