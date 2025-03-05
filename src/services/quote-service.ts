@@ -9,12 +9,23 @@ const API_PATHS = {
 export class QuoteService {
   /**
    * Create a new quote
+   * Handles bidirectional quoting (fromAmount or toAmount can be provided)
    */
   async createQuote(data: QuoteRequest): Promise<Quote> {
-    // Validate input
-    // if (!data.fromAmount || parseFloat(data.fromAmount) <= 0) {
-    //   throw new Error('Invalid amount');
-    // }
+    // Validate that we have at least one amount
+    if (!data.fromAmount && !data.toAmount) {
+      throw new Error('Either fromAmount or toAmount must be provided');
+    }
+    
+    // Validate currencies
+    if (!data.fromCurrency || !data.toCurrency) {
+      throw new Error('Both fromCurrency and toCurrency are required');
+    }
+    
+    // Validate payment method
+    if (!data.paymentMethodType) {
+      throw new Error('Payment method is required');
+    }
     
     try {
       // Call API to get quote
@@ -23,6 +34,32 @@ export class QuoteService {
       console.error('Error creating quote:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Create a quote for buying crypto (onramp)
+   * This is a convenience method that ensures fromAmount is used (fiat)
+   */
+  async createOnrampQuote(data: Omit<QuoteRequest, 'toAmount'> & { fromAmount: string }): Promise<Quote> {
+    const quoteRequest: QuoteRequest = {
+      ...data,
+      toAmount: ''  // Ensure toAmount is empty for onramp
+    };
+    
+    return this.createQuote(quoteRequest);
+  }
+  
+  /**
+   * Create a quote for selling crypto (offramp)
+   * This is a convenience method that ensures fromAmount is used (crypto)
+   */
+  async createOfframpQuote(data: Omit<QuoteRequest, 'toAmount'> & { fromAmount: string }): Promise<Quote> {
+    const quoteRequest: QuoteRequest = {
+      ...data,
+      toAmount: ''  // Ensure toAmount is empty for offramp
+    };
+    
+    return this.createQuote(quoteRequest);
   }
 }
 

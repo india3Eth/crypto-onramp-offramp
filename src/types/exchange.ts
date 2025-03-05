@@ -1,6 +1,7 @@
 // Base quote request interface
 export interface QuoteRequest {
   fromAmount: string;
+  toAmount: string;
   fromCurrency: string;
   toCurrency: string;
   paymentMethodType: string;

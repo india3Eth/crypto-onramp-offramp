@@ -17,6 +17,9 @@ import { usePaymentMethods } from "@/hooks/use-payment-methods"
 export default function HomePage() {
   const [mode, setMode] = useState<"buy" | "sell">("buy")
   
+  // Track which field was last modified (fromAmount or toAmount)
+  const [lastModifiedField, setLastModifiedField] = useState<"fromAmount" | "toAmount">("fromAmount")
+  
   // Single combined state for form data
   const [formData, setFormData] = useState<ExchangeFormData>({
     fromAmount: "50",
@@ -44,14 +47,28 @@ export default function HomePage() {
   const isLoadingOptions = isLoadingCrypto || isLoadingPayments
   const optionsError = cryptoError || paymentsError
   
+  // Prepare quote request based on last modified field
+  const prepareQuoteRequest = () => {
+    const request = { ...formData }
+    
+    // Clear the field that wasn't last modified
+    if (lastModifiedField === "fromAmount") {
+      request.toAmount = ""
+    } else {
+      request.fromAmount = ""
+    }
+    
+    return request
+  }
+  
   // Debounced API call for any input change
   useEffect(() => {
     // Skip if we don't have valid inputs yet
     if (
+      (!formData.fromAmount && !formData.toAmount) || 
       !formData.fromCurrency || 
       !formData.toCurrency || 
       !formData.paymentMethodType ||
-      (formData.fromAmount === "" && formData.toAmount === "") ||
       isLoadingOptions
     ) {
       return;
@@ -62,8 +79,11 @@ export default function HomePage() {
         setIsLoadingQuote(true);
         setQuoteError(null);
         
-        // Call API with current form data
-        const result = await createQuote(formData);
+        // Prepare request with only one amount field based on what was last modified
+        const quoteRequest = prepareQuoteRequest();
+        
+        // Call API with prepared request
+        const result = await createQuote(quoteRequest);
         
         // Update the form with the response data
         setFormData(prev => ({
@@ -94,7 +114,8 @@ export default function HomePage() {
     formData.toCurrency,
     formData.paymentMethodType,
     formData.chain,
-    isLoadingOptions
+    isLoadingOptions,
+    lastModifiedField
   ]);
   
   // Set up countdown timer for quote refresh
@@ -120,7 +141,10 @@ export default function HomePage() {
       setIsLoadingQuote(true);
       setQuoteError(null);
       
-      const result = await createQuote(formData);
+      // Prepare request with only one amount field based on what was last modified
+      const quoteRequest = prepareQuoteRequest();
+      
+      const result = await createQuote(quoteRequest);
       
       setFormData(prev => ({
         ...prev,
@@ -141,19 +165,21 @@ export default function HomePage() {
   
   // Handle fromAmount input change
   const handleFromAmountChange = (value: string) => {
+    setLastModifiedField("fromAmount");
     setFormData(prev => ({
       ...prev,
       fromAmount: value,
-      toAmount: ""  // Clear this so API calculates it
+      // Don't clear toAmount here, let the API handle it
     }));
   }
   
   // Handle toAmount input change
   const handleToAmountChange = (value: string) => {
+    setLastModifiedField("toAmount");
     setFormData(prev => ({
       ...prev,
       toAmount: value,
-      fromAmount: ""  // Clear this so API calculates it
+      // Don't clear fromAmount here, let the API handle it
     }));
   }
   
@@ -174,6 +200,7 @@ export default function HomePage() {
         toCurrency: "USDT",
         paymentMethodType: "CARD",
       }))
+      setLastModifiedField("fromAmount");
     } else {
       // For offramp (sell): default to entering fiat amount to receive
       setFormData(prev => ({
@@ -184,6 +211,7 @@ export default function HomePage() {
         toCurrency: fiatOptions[0] || "USD",
         paymentMethodType: "SEPA",
       }))
+      setLastModifiedField("toAmount");
     }
   }
   
@@ -272,12 +300,14 @@ export default function HomePage() {
                   />
                   <Select
                     value={formData.fromCurrency}
-                    onValueChange={(value) => setFormData((prev) => ({ 
-                      ...prev, 
-                      fromCurrency: value,
-                      // Clear toAmount to trigger recalculation
-                      toAmount: ""
-                    }))}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ 
+                        ...prev, 
+                        fromCurrency: value
+                      }))
+                      // When currency changes, maintain the last modified field
+                      // No need to clear either amount
+                    }}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                       <SelectValue placeholder="Currency" />
@@ -363,12 +393,14 @@ export default function HomePage() {
                   />
                   <Select
                     value={formData.toCurrency}
-                    onValueChange={(value) => setFormData((prev) => ({ 
-                      ...prev, 
-                      toCurrency: value,
-                      // Clear fromAmount to trigger recalculation
-                      fromAmount: ""
-                    }))}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ 
+                        ...prev, 
+                        toCurrency: value
+                      }))
+                      // When currency changes, maintain the last modified field
+                      // No need to clear either amount
+                    }}
                   >
                     <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
                       <SelectValue placeholder="Currency" />
@@ -399,10 +431,7 @@ export default function HomePage() {
                   value={formData.paymentMethodType}
                   onValueChange={(value) => setFormData((prev) => ({ 
                     ...prev, 
-                    paymentMethodType: value,
-                    // Keep amounts but trigger recalculation
-                    ...(prev.fromAmount ? {} : { toAmount: "" }),
-                    ...(prev.toAmount ? {} : { fromAmount: "" })
+                    paymentMethodType: value
                   }))}
                 >
                   <SelectTrigger className="w-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">

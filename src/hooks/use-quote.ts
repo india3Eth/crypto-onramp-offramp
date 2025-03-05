@@ -19,7 +19,7 @@ export function useQuote(
   // Set default options
   const { 
     autoRefresh = true,
-    refreshInterval = 30 
+    refreshInterval = 20 
   } = options;
   
   // Function to fetch a new quote
