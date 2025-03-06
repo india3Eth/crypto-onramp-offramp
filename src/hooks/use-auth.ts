@@ -23,20 +23,22 @@ export function useAuth({
     // Fetch user data
     const fetchUser = async () => {
       try {
+        setLoading(true);
         const res = await fetch('/api/auth/user');
         
         if (res.ok) {
           const userData = await res.json();
           setUser(userData);
           
-          // Redirect if needed
+          // Redirect if needed (user is found and redirectIfFound is true)
           if (redirectTo && redirectIfFound) {
             router.push(redirectTo);
           }
         } else {
+          // User is not authenticated
           setUser(null);
           
-          // Redirect if needed
+          // Redirect if needed (user is not found and redirectIfFound is false)
           if (redirectTo && !redirectIfFound) {
             router.push(redirectTo);
           }
@@ -122,14 +124,20 @@ export function useAuth({
   // Logout function
   const logout = async (): Promise<void> => {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
       });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to logout');
+      }
       
       setUser(null);
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
+      throw error; // Re-throw the error so the calling component can handle it
     }
   };
 

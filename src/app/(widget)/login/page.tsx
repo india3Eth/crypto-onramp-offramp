@@ -109,8 +109,8 @@ export default function LoginPage() {
         throw new Error(data.error || "Failed to verify code");
       }
       
-      // Successfully verified, redirect to home page
-      router.push("/")
+      // Successfully verified, redirect to profile page
+      router.push("/profile")
       
     } catch (error) {
       console.error("Verification error:", error);

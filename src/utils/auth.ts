@@ -11,6 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(
 export interface AuthUser {
   email: string;
   isVerified: boolean;
+  role?: string;
   [key: string]: any; // Add index signature to satisfy JWTPayload requirement
 }
 
