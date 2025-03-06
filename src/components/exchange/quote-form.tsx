@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowUpDown, Wallet, Clock, RefreshCw } from "lucide-react"
 import type { QuoteRequest } from "@/types/exchange"
+import { useCountdownTimer } from "@/hooks/use-countdown-timer"
 
 interface QuoteFormProps {
   mode: "buy" | "sell"
@@ -36,50 +37,23 @@ export function QuoteForm({
   onLastModifiedFieldChange,
   lastQuoteTimestamp
 }: QuoteFormProps) {
-  const [countdown, setCountdown] = useState(60)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const lastTimestampRef = useRef<number>(lastQuoteTimestamp || 0)
   
-  // Reset and start timer when a new quote is received or refreshed
+  // Use our custom countdown timer hook
+  const countdown = useCountdownTimer(
+    15, // Initial time in seconds
+    onCreateQuote, // Callback when timer reaches zero
+    [quote] // Dependencies that reset the timer when changed
+  )
+  
+  // Reset timer when a new quote is received or refreshed
   useEffect(() => {
     // Check if we have a new quote by comparing timestamps
     if (lastQuoteTimestamp && lastQuoteTimestamp !== lastTimestampRef.current) {
       // Update our ref to the latest timestamp
       lastTimestampRef.current = lastQuoteTimestamp
-      
-      // Reset countdown to full value
-      setCountdown(15)
     }
   }, [lastQuoteTimestamp])
-  
-  // Set up countdown timer for quote refresh
-  useEffect(() => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-    }
-    
-    // Only start timer if we have a quote
-    if (quote) {
-      timerRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            // When countdown reaches 0, trigger refresh
-            onCreateQuote()
-            return 15 // Reset to full value
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
-    
-    // Cleanup on unmount or when dependencies change
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-    }
-  }, [quote, onCreateQuote])
   
   // Handle manual refresh - fixed to ensure it works
   const handleManualRefresh = (e: React.MouseEvent) => {
@@ -90,8 +64,6 @@ export function QuoteForm({
     if (!isLoadingQuote) {
       console.log("Manual refresh triggered")
       onCreateQuote()
-      // Reset countdown immediately for better UX
-      setCountdown(60)
     }
   }
   
