@@ -1,127 +1,146 @@
 "use server"
 
-import { ObjectId } from 'mongodb';
-import { getDb, COLLECTIONS } from '@/lib/mongodb';
-import { getCurrentUser } from '@/utils/auth';
+import { requireAdmin } from '@/middleware/admin-middleware';
+import { getCollection, COLLECTIONS } from '@/lib/mongodb';
+import { logger } from '@/services/logger-service';
 
-// Update crypto asset status (onramp/offramp)
+interface ActionResult {
+  success: boolean;
+  message: string;
+  data?: any;
+}
+
+/**
+ * Update crypto asset status (onramp/offramp)
+ */
 export async function updateCryptoStatus(
   cryptoId: string,
   type: "onramp" | "offramp",
   enabled: boolean
-): Promise<{ success: boolean; message: string }> {
+): Promise<ActionResult> {
   try {
-    // Verify user is admin (you'll need to implement proper admin checks)
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        message: "Authentication required"
-      };
-    }
+    // Verify user is admin
+    await requireAdmin();
     
-    // Connect to MongoDB
-    const db = await getDb();
-    const collection = db.collection(COLLECTIONS.CRYPTO);
+    logger.info(`Updating crypto status: ${cryptoId}, ${type} => ${enabled}`);
+    
+    if (!cryptoId) {
+      throw new Error("Crypto asset ID is required");
+    }
     
     // Update field based on type
     const updateField = type === "onramp" ? "onRampSupported" : "offRampSupported";
     
-    // Update the asset
+    // Get collection and update the asset
+    const collection = await getCollection(COLLECTIONS.CRYPTO);
     const result = await collection.updateOne(
       { id: cryptoId },
       { $set: { [updateField]: enabled } }
     );
     
     if (result.matchedCount === 0) {
+      logger.warn(`Crypto asset not found: ${cryptoId}`);
       return {
         success: false,
         message: `Crypto asset with ID ${cryptoId} not found`
       };
     }
     
+    logger.info(`Successfully updated crypto asset: ${cryptoId}, ${type} => ${enabled}`);
+    
     return {
       success: true,
       message: `Successfully ${enabled ? 'enabled' : 'disabled'} ${type} for ${cryptoId}`
     };
   } catch (error) {
-    console.error(`Error updating crypto status for ${cryptoId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    
+    logger.error(`Error updating crypto status for ${cryptoId}:`, error);
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : "An unknown error occurred"
+      message: errorMessage
     };
   }
 }
 
-// Update payment method status (onramp/offramp)
+/**
+ * Update payment method status (onramp/offramp)
+ */
 export async function updatePaymentMethodStatus(
   methodId: string,
   type: "onramp" | "offramp",
   enabled: boolean
-): Promise<{ success: boolean; message: string }> {
+): Promise<ActionResult> {
   try {
-    // Verify user is admin (you'll need to implement proper admin checks)
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        message: "Authentication required"
-      };
-    }
+    // Verify user is admin
+    await requireAdmin();
     
-    // Connect to MongoDB
-    const db = await getDb();
-    const collection = db.collection(COLLECTIONS.PAYMENTS);
+    logger.info(`Updating payment method status: ${methodId}, ${type} => ${enabled}`);
+    
+    if (!methodId) {
+      throw new Error("Payment method ID is required");
+    }
     
     // Update field based on type
     const updateField = type === "onramp" ? "onRampSupported" : "offRampSupported";
     
-    // Update the payment method
+    // Get collection and update the payment method
+    const collection = await getCollection(COLLECTIONS.PAYMENTS);
     const result = await collection.updateOne(
       { id: methodId },
       { $set: { [updateField]: enabled } }
     );
     
     if (result.matchedCount === 0) {
+      logger.warn(`Payment method not found: ${methodId}`);
       return {
         success: false,
         message: `Payment method with ID ${methodId} not found`
       };
     }
     
+    logger.info(`Successfully updated payment method: ${methodId}, ${type} => ${enabled}`);
+    
     return {
       success: true,
       message: `Successfully ${enabled ? 'enabled' : 'disabled'} ${type} for ${methodId}`
     };
   } catch (error) {
-    console.error(`Error updating payment method status for ${methodId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    
+    logger.error(`Error updating payment method status for ${methodId}:`, error);
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : "An unknown error occurred"
+      message: errorMessage
     };
   }
 }
 
-// Add/remove countries from a payment method
+/**
+ * Update payment method supported countries
+ */
 export async function updatePaymentMethodCountries(
   methodId: string,
   countries: string[],
   action: "add" | "remove"
-): Promise<{ success: boolean; message: string }> {
+): Promise<ActionResult> {
   try {
     // Verify user is admin
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        message: "Authentication required"
-      };
+    await requireAdmin();
+    
+    logger.info(`Updating payment method countries: ${methodId}, ${action} => ${countries.join(', ')}`);
+    
+    if (!methodId) {
+      throw new Error("Payment method ID is required");
     }
     
-    // Connect to MongoDB
-    const db = await getDb();
-    const collection = db.collection(COLLECTIONS.PAYMENTS);
+    if (!countries.length) {
+      throw new Error("At least one country must be specified");
+    }
     
+    const collection = await getCollection(COLLECTIONS.PAYMENTS);
     let result;
     
     if (action === "add") {
@@ -132,9 +151,12 @@ export async function updatePaymentMethodCountries(
       );
     } else {
       // For removing countries, we'll first get the current document
-      const paymentMethod = await collection.findOne({ id: methodId });
+      const paymentMethod = await collection.findOne<{
+        availableCountries: never[]; availableFiatCurrencies: string[] 
+}>({ id: methodId });
       
       if (!paymentMethod) {
+        logger.warn(`Payment method not found: ${methodId}`);
         return {
           success: false,
           message: `Payment method with ID ${methodId} not found`
@@ -153,45 +175,54 @@ export async function updatePaymentMethodCountries(
     }
     
     if (result.matchedCount === 0) {
+      logger.warn(`Payment method not found: ${methodId}`);
       return {
         success: false,
         message: `Payment method with ID ${methodId} not found`
       };
     }
     
+    logger.info(`Successfully updated payment method countries: ${methodId}, ${action} => ${countries.join(', ')}`);
+    
     return {
       success: true,
       message: `Successfully ${action === "add" ? 'added' : 'removed'} countries for ${methodId}`
     };
   } catch (error) {
-    console.error(`Error updating countries for ${methodId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    
+    logger.error(`Error updating countries for ${methodId}:`, error);
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : "An unknown error occurred"
+      message: errorMessage
     };
   }
 }
 
-// Add/remove currencies from a payment method
+/**
+ * Update payment method supported currencies
+ */
 export async function updatePaymentMethodCurrencies(
   methodId: string,
   currencies: string[],
   action: "add" | "remove"
-): Promise<{ success: boolean; message: string }> {
+): Promise<ActionResult> {
   try {
     // Verify user is admin
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        message: "Authentication required"
-      };
+    await requireAdmin();
+    
+    logger.info(`Updating payment method currencies: ${methodId}, ${action} => ${currencies.join(', ')}`);
+    
+    if (!methodId) {
+      throw new Error("Payment method ID is required");
     }
     
-    // Connect to MongoDB
-    const db = await getDb();
-    const collection = db.collection(COLLECTIONS.PAYMENTS);
+    if (!currencies.length) {
+      throw new Error("At least one currency must be specified");
+    }
     
+    const collection = await getCollection(COLLECTIONS.PAYMENTS);
     let result;
     
     if (action === "add") {
@@ -202,9 +233,10 @@ export async function updatePaymentMethodCurrencies(
       );
     } else {
       // For removing currencies, we'll first get the current document
-      const paymentMethod = await collection.findOne({ id: methodId });
+      const paymentMethod = await collection.findOne<{ availableFiatCurrencies: string[] }>({ id: methodId });
       
       if (!paymentMethod) {
+        logger.warn(`Payment method not found: ${methodId}`);
         return {
           success: false,
           message: `Payment method with ID ${methodId} not found`
@@ -223,21 +255,27 @@ export async function updatePaymentMethodCurrencies(
     }
     
     if (result.matchedCount === 0) {
+      logger.warn(`Payment method not found: ${methodId}`);
       return {
         success: false,
         message: `Payment method with ID ${methodId} not found`
       };
     }
     
+    logger.info(`Successfully updated payment method currencies: ${methodId}, ${action} => ${currencies.join(', ')}`);
+    
     return {
       success: true,
       message: `Successfully ${action === "add" ? 'added' : 'removed'} currencies for ${methodId}`
     };
   } catch (error) {
-    console.error(`Error updating currencies for ${methodId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    
+    logger.error(`Error updating currencies for ${methodId}:`, error);
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : "An unknown error occurred"
+      message: errorMessage
     };
   }
 }
