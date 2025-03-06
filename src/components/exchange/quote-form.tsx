@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowUpDown, Wallet, Clock, RefreshCw } from "lucide-react"
 import type { QuoteRequest } from "@/types/exchange"
 import { useCountdownTimer } from "@/hooks/use-countdown-timer"
+import { CurrencySelect } from "@/components/exchange/currency-select"
 
 interface QuoteFormProps {
   mode: "buy" | "sell"
@@ -64,6 +64,7 @@ export function QuoteForm({
     if (!isLoadingQuote) {
       console.log("Manual refresh triggered")
       onCreateQuote()
+      // No need to manually reset countdown - the hook will handle it
     }
   }
   
@@ -127,41 +128,14 @@ export function QuoteForm({
       </div>
 
       {/* From currency (You Pay/Send) */}
-      <div className="space-y-2">
-        <label className="font-bold">{mode === "buy" ? "You Pay" : "You Send"}</label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            value={formData.fromAmount}
-            onChange={(e) => handleFromAmountChange(e.target.value)}
-            className="flex-grow border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]"
-            placeholder="0.00"
-          />
-          <Select
-            value={formData.fromCurrency}
-            onValueChange={handleFromCurrencyChange}
-          >
-            <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
-              <SelectValue placeholder="Currency" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
-              {mode === "buy" ? (
-                fiatOptions.map(currency => (
-                  <SelectItem key={currency} value={currency}>
-                    {currency}
-                  </SelectItem>
-                ))
-              ) : (
-                cryptoOptions.map(crypto => (
-                  <SelectItem key={crypto.id} value={crypto.id}>
-                    {crypto.id}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <CurrencySelect
+        label={mode === "buy" ? "You Pay" : "You Send"}
+        amount={formData.fromAmount}
+        currency={formData.fromCurrency}
+        options={mode === "buy" ? fiatOptions : cryptoOptions}
+        onAmountChange={handleFromAmountChange}
+        onCurrencyChange={handleFromCurrencyChange}
+      />
 
       {/* Rate Display with improved styling for timer */}
       {quote && (
@@ -195,41 +169,14 @@ export function QuoteForm({
       )}
 
       {/* To currency (You Get/Receive) */}
-      <div className="space-y-2">
-        <label className="font-bold">{mode === "buy" ? "You Get" : "You Receive"}</label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            value={formData.toAmount}
-            onChange={(e) => handleToAmountChange(e.target.value)}
-            className="flex-grow border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]"
-            placeholder="0.00"
-          />
-          <Select
-            value={formData.toCurrency}
-            onValueChange={handleToCurrencyChange}
-          >
-            <SelectTrigger className="w-[100px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.8)]">
-              <SelectValue placeholder="Currency" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
-              {mode === "buy" ? (
-                cryptoOptions.map(crypto => (
-                  <SelectItem key={crypto.id} value={crypto.id}>
-                    {crypto.id}
-                  </SelectItem>
-                ))
-              ) : (
-                fiatOptions.map(currency => (
-                  <SelectItem key={currency} value={currency}>
-                    {currency}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <CurrencySelect
+        label={mode === "buy" ? "You Get" : "You Receive"}
+        amount={formData.toAmount}
+        currency={formData.toCurrency}
+        options={mode === "buy" ? cryptoOptions : fiatOptions}
+        onAmountChange={handleToAmountChange}
+        onCurrencyChange={handleToCurrencyChange}
+      />
 
       {/* Payment method */}
       <div className="space-y-2">
