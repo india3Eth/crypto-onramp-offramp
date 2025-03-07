@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 interface UserData {
   email: string;
   isVerified: boolean;
+  customerId?: string; // Added customerId field
+  role?: string;
+  kycStatus?: string;
 }
 
 interface UseAuthProps {
@@ -141,11 +144,26 @@ export function useAuth({
     }
   };
 
+  // Refresh user data
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const res = await fetch('/api/auth/user');
+      
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
+
   return {
     user,
     loading,
     login,
     verify,
-    logout
+    logout,
+    refreshUser
   };
 }

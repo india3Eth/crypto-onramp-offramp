@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { LogOut, User, Shield, ArrowRight, AlertCircle } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
+import { CreateCustomerForm } from "@/components/customer/create-customer-form" 
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -62,6 +63,15 @@ export default function ProfilePage() {
       setLogoutError("Failed to log out. Please try again.")
       setIsLoggingOut(false)
     }
+  }
+
+  // Check if the user has a customerId - if not, show the create customer form
+  if (!user.customerId) {
+    return (
+      <div className="space-y-6">
+        <CreateCustomerForm />
+      </div>
+    )
   }
 
   return (

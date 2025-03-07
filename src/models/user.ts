@@ -1,3 +1,5 @@
+// src/models/user.ts - Updated with customerId field and update method
+
 import { ObjectId } from 'mongodb';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
 import { generateOTP } from '@/utils/auth';
@@ -11,6 +13,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   isVerified: boolean;
+  customerId?: string; // Added customerId field
   otp?: {
     code: string;
     expiresAt: Date;
@@ -24,6 +27,7 @@ export interface User {
     countryOfResidence?: string;
     submissionId?: string;
   };
+  role?: string;
 }
 
 export class UserModel {
@@ -54,7 +58,8 @@ export class UserModel {
         },
         $setOnInsert: { 
           createdAt: now,
-          isVerified: false
+          isVerified: false,
+          kycStatus: 'NONE'
         }
       },
       { 
@@ -139,6 +144,27 @@ export class UserModel {
       { 
         $set: { 
           ...data,
+          updatedAt: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    );
+  }
+  
+  /**
+   * Update user customerId
+   */
+  static async updateCustomerId(
+    email: string,
+    customerId: string
+  ): Promise<User | null> {
+    const db = await getDb();
+    
+    return db.collection<User>(COLLECTIONS.USERS).findOneAndUpdate(
+      { email },
+      { 
+        $set: { 
+          customerId,
           updatedAt: new Date()
         }
       },
