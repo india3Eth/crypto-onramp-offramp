@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       isVerified: user.isVerified,
       customerId: user.customerId,
       role: user.role,
-      kycStatus: user.kycStatus
+      kycStatus: user.kycStatus,
+      kycData: user.kycData
     });
   } catch (error) {
     console.error('Error fetching user data:', error);

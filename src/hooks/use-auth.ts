@@ -4,9 +4,19 @@ import { useRouter } from 'next/navigation';
 interface UserData {
   email: string;
   isVerified: boolean;
-  customerId?: string; // Added customerId field
+  customerId?: string;
   role?: string;
   kycStatus?: string;
+  kycData?: {
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    nationality?: string;
+    countryOfResidence?: string;
+    submissionId?: string;
+    statusReason?: string;
+    kycLevel?: string;
+  };
 }
 
 interface UseAuthProps {
