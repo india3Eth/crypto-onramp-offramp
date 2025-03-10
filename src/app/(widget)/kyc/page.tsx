@@ -5,9 +5,14 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, CheckCircle, AlertCircle } from "lucide-react"
+import { Shield, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { submitKycLevel1 } from "@/app/actions/kyc"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function KYCPage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -17,6 +22,7 @@ export default function KYCPage() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState<string>("")
 
   // List of countries for dropdowns
   const countries = [
@@ -28,6 +34,7 @@ export default function KYCPage() {
     { value: "CA", label: "Canada" },
     { value: "AU", label: "Australia" },
     { value: "JP", label: "Japan" },
+    { value: "CY", label: "Cyprus" },
   ]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,17 +52,49 @@ export default function KYCPage() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    setErrorMessage("")
     
-    // Simulate API call
-    setTimeout(() => {
-      // 90% chance of success for demo purposes
-      const success = Math.random() > 0.1
-      setSubmitStatus(success ? "success" : "error")
+    // Validate form data
+    if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || 
+        !formData.nationality || !formData.countryOfResidence) {
+      setErrorMessage("All fields are required")
+      setSubmitStatus("error")
       setSubmitting(false)
-    }, 1500)
+      return
+    }
+    
+    try {
+      // Submit KYC data using server action
+      const result = await submitKycLevel1(formData)
+      
+      if (result.success) {
+        setSubmitStatus("success")
+      } else {
+        setErrorMessage(result.message)
+        setSubmitStatus("error")
+      }
+    } catch (error) {
+      console.error("Error submitting KYC:", error)
+      setErrorMessage("An unexpected error occurred. Please try again.")
+      setSubmitStatus("error")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Redirect if not logged in
+  if (!loading && !user) {
+    router.push('/login?redirect=/kyc')
+    return null
+  }
+  
+  // Redirect if no customerId
+  if (!loading && user && !user.customerId) {
+    router.push('/customer/create?redirect=/kyc')
+    return null
   }
 
   // Show success state
@@ -74,9 +113,9 @@ export default function KYCPage() {
             </p>
             <Button 
               className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]"
-              onClick={() => window.location.href = "/exchange"}
+              onClick={() => router.push("/profile")}
             >
-              Return to Exchange
+              Return to Profile
             </Button>
           </div>
         </Card>
@@ -98,7 +137,7 @@ export default function KYCPage() {
             <div className="w-full mb-6 p-4 bg-red-200 border-2 border-black rounded-md flex items-start">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-sm font-medium">
-                We encountered an error while submitting your verification. Please try again.
+                {errorMessage || "We encountered an error while submitting your verification. Please try again."}
               </p>
             </div>
           )}
@@ -183,7 +222,12 @@ export default function KYCPage() {
               className="w-full mt-4 bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
               disabled={submitting}
             >
-              {submitting ? "Submitting..." : "Submit verification"}
+              {submitting ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  Submitting...
+                </div>
+              ) : "Submit verification"}
             </Button>
           </form>
         </div>

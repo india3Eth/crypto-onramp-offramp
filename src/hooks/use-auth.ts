@@ -147,6 +147,7 @@ export function useAuth({
   // Refresh user data
   const refreshUser = async (): Promise<void> => {
     try {
+      setLoading(true);
       const res = await fetch('/api/auth/user');
       
       if (res.ok) {
@@ -155,6 +156,8 @@ export function useAuth({
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 

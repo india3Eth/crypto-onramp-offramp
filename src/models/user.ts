@@ -1,4 +1,4 @@
-// src/models/user.ts - Updated with customerId field and update method
+
 
 import { ObjectId } from 'mongodb';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
@@ -13,12 +13,12 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   isVerified: boolean;
-  customerId?: string; // Added customerId field
+  customerId?: string; 
   otp?: {
     code: string;
     expiresAt: Date;
   };
-  kycStatus?: 'NONE' | 'PENDING' | 'COMPLETED' | 'REJECTED';
+  kycStatus?: 'NONE' | 'PENDING' | 'COMPLETED' | 'UPDATE_REQUIRED' | 'FAILED';
   kycData?: {
     firstName?: string;
     lastName?: string;
@@ -26,6 +26,8 @@ export interface User {
     nationality?: string;
     countryOfResidence?: string;
     submissionId?: string;
+    statusReason?: string;
+    kycLevel?: string;
   };
   role?: string;
 }
@@ -131,6 +133,14 @@ export class UserModel {
   }
   
   /**
+   * Find user by customerId
+   */
+  static async findByCustomerId(customerId: string): Promise<User | null> {
+    const db = await getDb();
+    return db.collection<User>(COLLECTIONS.USERS).findOne({ customerId });
+  }
+  
+  /**
    * Update user profile
    */
   static async updateUserProfile(
@@ -188,6 +198,31 @@ export class UserModel {
         $set: { 
           kycData,
           kycStatus,
+          updatedAt: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    );
+  }
+  
+  /**
+   * Update user KYC status
+   */
+  static async updateKYCStatus(
+    email: string,
+    kycStatus: User['kycStatus'],
+    statusReason?: string | null,
+    kycLevel?: string
+  ): Promise<User | null> {
+    const db = await getDb();
+    
+    return db.collection<User>(COLLECTIONS.USERS).findOneAndUpdate(
+      { email },
+      { 
+        $set: { 
+          kycStatus,
+          ...(statusReason ? { 'kycData.statusReason': statusReason } : {}),
+          ...(kycLevel ? { 'kycData.kycLevel': kycLevel } : {}),
           updatedAt: new Date()
         }
       },

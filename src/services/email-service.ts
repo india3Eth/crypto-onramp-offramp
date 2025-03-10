@@ -18,6 +18,12 @@ class EmailServiceError extends Error {
  * Email Service using SendGrid
  */
 export class EmailService {
+  sendKycRejectedEmail(email: string, firstName: string | undefined, reason: string | undefined) {
+    throw new Error('Method not implemented.');
+  }
+  sendKycApprovedEmail(email: string, firstName: string | undefined) {
+    throw new Error('Method not implemented.');
+  }
   private readonly fromEmail: string;
   private readonly baseUrl: string;
   

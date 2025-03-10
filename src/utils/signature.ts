@@ -18,7 +18,7 @@ export function generateSignature(method: string, path: string): string {
   // Ensure method is uppercase
   const uppercaseMethod = method.toUpperCase()
   
-  // Create the string to sign (method + path + payload if provided)
+  // Create the string to sign (method + path)
   let stringToSign = `${uppercaseMethod}${path}`
 
   
@@ -49,11 +49,16 @@ export function verifySignature(signature: string, body: string): boolean {
   hmac.update(body)
   
   // Generate expected signature
-  const expectedSignature = hmac.digest("base64")
+  const expectedSignature = hmac.digest("hex")
   
   // Compare signatures using timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  )
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    )
+  } catch (error) {
+    console.error("Error comparing signatures:", error)
+    return false
+  }
 }
