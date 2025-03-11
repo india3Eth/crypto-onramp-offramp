@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button"
 
 interface KycStatusProps {
   status: string | undefined
+  level?: string | undefined
   className?: string
 }
 
-export function KycStatus({ status, className = "" }: KycStatusProps) {
+export function KycStatus({ status, level, className = "" }: KycStatusProps) {
   const router = useRouter()
+
+  // For debugging
+  console.log("KYC Status Component:", { status, level })
 
   if (!status || status === 'NONE') {
     return (
@@ -38,10 +42,49 @@ export function KycStatus({ status, className = "" }: KycStatusProps) {
   }
 
   if (status === 'COMPLETED') {
+    // Use a default value of "Level 1" if level is undefined
+    const currentLevel = level || "Level 1"
+    
     return (
-      <div className={`flex items-center p-4 bg-green-50 rounded-lg border-2 border-green-200 ${className}`}>
-        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-        <span className="font-medium">Identity verified</span>
+      <div className={`flex flex-col p-4 bg-green-50 rounded-lg border-2 border-green-200 ${className}`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+            <span className="font-medium">Identity verified - {currentLevel}</span>
+          </div>
+          <div className="px-2 py-1 bg-green-200 rounded text-xs font-bold">
+            {currentLevel}
+          </div>
+        </div>
+        
+        {/* Show upgrade buttons based on current level */}
+        {(currentLevel === "Level 1") && (
+          <Button 
+            size="sm" 
+            onClick={() => router.push('/kyc/level2')}
+            className="mt-2 bg-blue-500"
+          >
+            <Shield className="h-4 w-4 mr-1" />
+            Upgrade to Level 2
+          </Button>
+        )}
+        
+        {currentLevel === "Level 2" && (
+          <Button 
+            size="sm" 
+            onClick={() => router.push('/kyc/level3')}
+            className="mt-2 bg-blue-500"
+          >
+            <Shield className="h-4 w-4 mr-1" />
+            Upgrade to Level 3
+          </Button>
+        )}
+        
+        {currentLevel === "Level 3" && (
+          <div className="text-sm text-green-700 mt-2">
+            You have completed the highest verification level.
+          </div>
+        )}
       </div>
     )
   }

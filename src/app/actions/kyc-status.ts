@@ -32,7 +32,9 @@ interface KYCStatusResponse {
 /**
  * Server action to fetch the latest KYC status from the external API
  */
-export async function refreshKycStatus(): Promise<{
+export async function refreshKycStatus(
+  forLevel?: number // Optionally refresh status for a specific level
+): Promise<{
   success: boolean;
   message: string;
   kycLevel?: string;
@@ -43,18 +45,27 @@ export async function refreshKycStatus(): Promise<{
     const currentUser = await getCurrentUser();
     
     if (!currentUser || !currentUser.email) {
-      throw new Error("User not authenticated");
+      return {
+        success: false,
+        message: "User not authenticated"
+      };
     }
     
     // Get full user data including customerId and submissionId
     const user = await UserModel.getUserByEmail(currentUser.email);
     
     if (!user || !user.customerId) {
-      throw new Error("Customer profile not found. Please create a customer profile first.");
+      return {
+        success: false,
+        message: "Customer profile not found. Please create a customer profile first."
+      };
     }
     
     if (!user.kycData?.submissionId) {
-      throw new Error("No KYC submission found. Please complete KYC verification first.");
+      return {
+        success: false,
+        message: "No KYC submission found. Please complete KYC verification first."
+      };
     }
     
     // Generate signature for API call
@@ -65,14 +76,18 @@ export async function refreshKycStatus(): Promise<{
     // API key is required
     const apiKey = process.env.UNLIMIT_API_KEY;
     if (!apiKey) {
-      throw new Error("API Key is missing");
+      return {
+        success: false,
+        message: "API Key is missing"
+      };
     }
     
     const apiBaseUrl = process.env.UNLIMIT_API_BASE_URL || "https://api-sandbox.gatefi.com";
     
     logger.info(`Fetching KYC status for customer: ${user.customerId}`, { 
       email: currentUser.email,
-      submissionId: user.kycData.submissionId
+      submissionId: user.kycData.submissionId,
+      forLevel
     });
     
     // Make API request
@@ -88,11 +103,16 @@ export async function refreshKycStatus(): Promise<{
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       logger.error("Failed to fetch KYC status", errorData);
-      throw new Error(`Failed to fetch KYC status: ${response.statusText}`);
+      return {
+        success: false,
+        message: `Failed to fetch KYC status: ${response.statusText}`
+      };
     }
     
     // Parse response
     const statusData: KYCStatusResponse = await response.json();
+    
+    console.log("KYC Status API Response:", JSON.stringify(statusData, null, 2));
     
     // Map API status to our internal status
     let kycStatus: string;
@@ -115,7 +135,22 @@ export async function refreshKycStatus(): Promise<{
     }
     
     // Extract the KYC level from the response
-    const kycLevel = statusData.kyc?.current?.levelName || "None";
+    const kycLevel = statusData.kyc?.current?.levelName || "Level 1";
+    
+    // If refreshing for a specific level, check if the user has that level
+    if (forLevel) {
+      const userLevelNumber = kycLevel.includes('Level') ? 
+        parseInt(kycLevel.replace('Level', '').trim()) : 0;
+      
+      // If requested level is higher than user's current level
+      if (userLevelNumber < forLevel) {
+        // User hasn't completed this level yet
+        return {
+          success: false,
+          message: `You need to complete Level ${forLevel} verification first.`
+        };
+      }
+    }
     
     // Update user's KYC status and level in the database
     await UserModel.updateKYCStatus(
@@ -139,6 +174,9 @@ export async function refreshKycStatus(): Promise<{
   } catch (error) {
     logger.error("Error refreshing KYC status:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return { success: false, message: errorMessage };
+    return { 
+      success: false, 
+      message: errorMessage 
+    };
   }
 }

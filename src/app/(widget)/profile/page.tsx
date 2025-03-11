@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
 import { CreateCustomerForm } from "@/components/customer/create-customer-form" 
 import { refreshKycStatus } from "@/app/actions/kyc-status"
+import { KycStatus } from "@/components/user/kyc-status"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -30,7 +31,9 @@ export default function ProfilePage() {
       setIsRefreshingKyc(true)
       setKycRefreshError(null)
       
+      console.log("Refreshing KYC status...")
       const result = await refreshKycStatus()
+      console.log("KYC status refresh result:", result)
       
       if (result.success) {
         // Refresh user data to get updated KYC status
@@ -39,6 +42,7 @@ export default function ProfilePage() {
         setKycRefreshError(result.message)
       }
     } catch (error) {
+      console.error("Error refreshing KYC status:", error)
       setKycRefreshError(error instanceof Error ? error.message : "Failed to refresh KYC status")
     } finally {
       setIsRefreshingKyc(false)
@@ -99,9 +103,6 @@ export default function ProfilePage() {
     )
   }
 
-  // Get KYC level from user data
-  const kycLevel = user.kycData?.kycLevel || "None";
-
   return (
     <div className="space-y-6">
       <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
@@ -142,46 +143,47 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* KYC verification status */}
+        {/* KYC status and debugging info */}
         <div className="space-y-4 mb-8">
-          {/* KYC level display if completed */}
-          {user.kycStatus === 'COMPLETED' && (
-            <div className="p-4 bg-green-100 rounded-lg border-2 border-green-300">
-              <div className="flex items-start">
-                <div className="bg-white p-1 rounded-full mr-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+          {/* Debug section */}
+          <div className="p-4 bg-gray-100 rounded-lg border-2 border-gray-300 mb-4">
+            <p className="font-bold mb-1 text-gray-600">KYC Debug Info</p>
+            <p className="text-sm font-mono break-all whitespace-pre-wrap">
+              KYC Status: {user.kycStatus || "NONE"}<br />
+              KYC Level: {user.kycData?.kycLevel || "Not Set"}<br />
+              Submission ID: {user.kycData?.submissionId || "Not Set"}<br />
+              <Button 
+                onClick={handleRefreshKycStatus}
+                disabled={isRefreshingKyc}
+                className="mt-2 text-xs"
+                size="sm"
+                variant="outline"
+              >
+                {isRefreshingKyc ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Refresh KYC Status
+                  </>
+                )}
+              </Button>
+              {kycRefreshError && (
+                <div className="mt-2 p-2 bg-red-100 text-xs text-red-600">
+                  Error: {kycRefreshError}
                 </div>
-                <div className="flex-grow">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold">KYC Verification Complete</p>
-                    <p className="text-sm font-bold bg-green-200 px-2 py-1 rounded-md">{kycLevel}</p>
-                  </div>
-                  <p className="text-sm text-green-700">Your identity has been verified. You can now access all platform features.</p>
-                </div>
-              </div>
-
-              {/* Action buttons based on KYC level */}
-              {kycLevel === "Level 1" && (
-                <Button 
-                  onClick={() => router.push('/kyc/level2')}
-                  className="w-full mt-4 bg-blue-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                >
-                  <Shield className="mr-2 h-5 w-5" />
-                  Complete KYC Level 2 Verification
-                </Button>
               )}
-
-              {kycLevel === "Level 2" && (
-                <Button 
-                  onClick={() => router.push('/kyc/level3')}
-                  className="w-full mt-4 bg-blue-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                >
-                  <Shield className="mr-2 h-5 w-5" />
-                  Complete KYC Level 3 Verification
-                </Button>
-              )}
-            </div>
-          )}
+            </p>
+          </div>
+          
+          {/* KYC status component */}
+          <KycStatus 
+            status={user.kycStatus} 
+            level={user.kycData?.kycLevel}
+          />
 
           {/* KYC pending status with refresh button */}
           {user.kycStatus === 'PENDING' && (
@@ -222,37 +224,65 @@ export default function ProfilePage() {
           
           {/* KYC failed status */}
           {(user.kycStatus === 'UPDATE_REQUIRED' || user.kycStatus === 'FAILED') && (
-            <div className="p-4 bg-red-100 rounded-lg border-2 border-red-300 flex items-start">
-              <div className="bg-white p-1 rounded-full mr-2">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="flex-grow">
-                <div className="flex items-center justify-between">
-                  <p className="font-bold">KYC Verification Failed</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleRefreshKycStatus}
-                    disabled={isRefreshingKyc}
-                    className="ml-2 border-red-600 text-red-600 hover:bg-red-50"
-                  >
-                    {isRefreshingKyc ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
+            <div className="p-4 bg-red-100 rounded-lg border-2 border-red-300">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start">
+                  <div className="bg-white p-1 rounded-full mr-2">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold">KYC Verification Failed</p>
+                    <p className="text-sm text-red-700">
+                      {user.kycData?.statusReason || "We couldn't verify your identity. Please try again."}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-red-700">
-                  {user.kycData?.statusReason || "We couldn't verify your identity. Please try again."}
-                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefreshKycStatus}
+                  disabled={isRefreshingKyc}
+                  className="ml-2 border-red-600 text-red-600 hover:bg-red-50"
+                >
+                  {isRefreshingKyc ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              
+              {/* Show retry buttons based on last attempted level */}
+              <div className="mt-4 space-y-2">
                 <Button 
                   onClick={() => router.push('/kyc')}
-                  variant="outline"
-                  className="mt-2 border-red-300 text-red-600 hover:bg-red-50"
+                  className="w-full bg-red-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
                 >
-                  Try Again
+                  <Shield className="mr-2 h-5 w-5" />
+                  Retry Level 1 Verification
                 </Button>
+                
+                {/* Only show Level 2 button if user has already passed Level 1 */}
+                {user.kycData?.kycLevel === "Level 1" && (
+                  <Button 
+                    onClick={() => router.push('/kyc/level2')}
+                    className="w-full bg-red-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                  >
+                    <Shield className="mr-2 h-5 w-5" />
+                    Retry Level 2 Verification
+                  </Button>
+                )}
+                
+                {/* Only show Level 3 button if user has already passed Level 2 */}
+                {user.kycData?.kycLevel === "Level 2" && (
+                  <Button 
+                    onClick={() => router.push('/kyc/level3')}
+                    className="w-full bg-red-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                  >
+                    <Shield className="mr-2 h-5 w-5" />
+                    Retry Level 3 Verification
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -266,6 +296,27 @@ export default function ProfilePage() {
               <Shield className="mr-2 h-5 w-5" />
               Complete KYC Level 1 Verification
             </Button>
+          )}
+          
+          {/* Direct buttons for level 2 and 3 verification (for debugging) */}
+          {user.kycStatus === 'COMPLETED' && (
+            <div className="mt-4 space-y-2 p-4 bg-gray-100 rounded-lg border-2 border-gray-300">
+              <p className="font-bold mb-2 text-gray-600">Debug Actions</p>
+              <Button 
+                onClick={() => router.push('/kyc/level2')}
+                className="w-full bg-blue-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all mb-2"
+              >
+                <Shield className="mr-2 h-5 w-5" />
+                Try Level 2 Verification
+              </Button>
+              <Button 
+                onClick={() => router.push('/kyc/level3')}
+                className="w-full bg-purple-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+              >
+                <Shield className="mr-2 h-5 w-5" />
+                Try Level 3 Verification
+              </Button>
+            </div>
           )}
         </div>
         
