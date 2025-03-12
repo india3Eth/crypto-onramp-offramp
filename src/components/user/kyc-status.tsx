@@ -1,18 +1,43 @@
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Shield, AlertCircle, Clock, CheckCircle } from "lucide-react"
+import { Shield, AlertCircle, Clock, CheckCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { submitKycForReview } from "@/app/actions/kyc"
 
 interface KycStatusProps {
   status: string | undefined
   level?: string | undefined
   className?: string
+  onRefresh?: () => Promise<void>
 }
 
-export function KycStatus({ status, level, className = "" }: KycStatusProps) {
+export function KycStatus({ status, level, className = "", onRefresh }: KycStatusProps) {
   const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // For debugging
-  console.log("KYC Status Component:", { status, level })
+  // Handle submit for review
+  const handleSubmitForReview = async () => {
+    setIsSubmitting(true)
+    setSubmitError(null)
+    
+    try {
+      const result = await submitKycForReview()
+      
+      if (result.success) {
+        // Refresh user data to get updated status
+        if (onRefresh) {
+          await onRefresh()
+        }
+      } else {
+        setSubmitError(result.message)
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   if (!status || status === 'NONE') {
     return (
@@ -28,6 +53,45 @@ export function KycStatus({ status, level, className = "" }: KycStatusProps) {
         >
           Verify Now
         </Button>
+      </div>
+    )
+  }
+
+  // Special case for IN_REVIEW status - when data is collected but not yet submitted for review
+  if (status === 'IN_REVIEW') {
+    return (
+      <div className={`flex flex-col p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 ${className}`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <Clock className="h-5 w-5 text-yellow-500 mr-2" />
+            <span className="font-medium">Verification data ready for review</span>
+          </div>
+        </div>
+        
+        <Button 
+          size="sm" 
+          onClick={handleSubmitForReview}
+          disabled={isSubmitting}
+          className="mt-2 bg-blue-500"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <Shield className="h-4 w-4 mr-1" />
+              Submit for Review
+            </>
+          )}
+        </Button>
+        
+        {submitError && (
+          <div className="mt-2 p-2 bg-red-100 text-xs text-red-600">
+            Error: {submitError}
+          </div>
+        )}
       </div>
     )
   }

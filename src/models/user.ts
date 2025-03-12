@@ -18,7 +18,7 @@ export interface User {
     code: string;
     expiresAt: Date;
   };
-  kycStatus?: 'NONE' | 'PENDING' | 'COMPLETED' | 'UPDATE_REQUIRED' | 'FAILED';
+  kycStatus?: 'NONE' | 'IN_REVIEW' | 'PENDING' | 'COMPLETED' | 'UPDATE_REQUIRED' | 'FAILED';
   kycData?: {
     firstName?: string;
     lastName?: string;
