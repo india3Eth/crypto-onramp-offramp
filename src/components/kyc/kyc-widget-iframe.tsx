@@ -128,13 +128,12 @@ export function KycWidgetIframe({
           Back
         </Button>
       </div>
-      
       <div className="w-full border-4 border-black rounded-lg overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)]">
         <iframe
           src={widgetUrl}
           width="100%"
-          height="680"
-          className="w-full h-[680px]"
+          height="480"
+          className="w-full h-[480px]"
           allow="camera; microphone"
         />
       </div>
