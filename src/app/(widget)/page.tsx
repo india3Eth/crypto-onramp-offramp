@@ -141,6 +141,30 @@ export default function HomePage() {
     // Reset previous params to force a quote fetch after mode change
     previousParamsRef.current = '';
   }
+
+
+  const handleContinue = () => {
+    if (quote) {
+      // Save current quote to localStorage with all necessary details
+      const quoteData = {
+        ...quote,
+        mode, // 'buy' or 'sell'
+        fromCurrency: formData.fromCurrency,
+        toCurrency: formData.toCurrency,
+        fromAmount: formData.fromAmount,
+        toAmount: formData.toAmount,
+        paymentMethodType: formData.paymentMethodType,
+        chain: formData.chain,
+        rate: parseFloat(quote.rate).toFixed(6),
+        lastUpdated: Date.now() // Add timestamp for the timer
+      };
+      
+      localStorage.setItem('currentQuote', JSON.stringify(quoteData));
+      
+      // Redirect to order summary page
+      window.location.href = "/order/summary";
+    }
+  };
   
   // Update default currency values when options are loaded
   useEffect(() => {
@@ -261,11 +285,10 @@ export default function HomePage() {
 
               {/* Continue button */}
               <Button
-                className={`w-full text-white font-bold py-3 transition-transform active:translate-y-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] ${
-                  mode === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
-                }`}
+                className={`w-full text-white font-bold py-3 transition-transform active:translate-y-1 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] ${mode === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"
+                  }`}
                 disabled={!quote || isLoadingQuote}
-                onClick={() => window.location.href = "/login"}
+                onClick={handleContinue}
               >
                 {isLoadingQuote ? "Getting quote..." : "Continue"}
               </Button>

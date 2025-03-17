@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +9,16 @@ import { Card } from "@/components/ui/card"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<"email" | "otp">("email")
   const [email, setEmail] = useState("")
   const [otp, setOtp] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [otpSent, setOtpSent] = useState(false)
+  
+  // Get redirect URL from query parameters
+  const redirectUrl = searchParams?.get('redirect') || '/profile'
 
   // Validate email format
   const isValidEmail = (email: string) => {
@@ -109,8 +113,19 @@ export default function LoginPage() {
         throw new Error(data.error || "Failed to verify code");
       }
       
-      // Successfully verified, redirect to profile page
-      router.push("/profile")
+      // Check if we should return to order summary
+      const shouldReturnToOrder = localStorage.getItem('returnToOrderSummary') === 'true'
+      
+      // Clear the flag
+      localStorage.removeItem('returnToOrderSummary')
+      
+      // If user has a pending order, redirect to order summary
+      if (shouldReturnToOrder) {
+        router.push("/order/summary")
+      } else {
+        // Otherwise redirect to the provided redirect URL
+        router.push(redirectUrl)
+      }
       
     } catch (error) {
       console.error("Verification error:", error);

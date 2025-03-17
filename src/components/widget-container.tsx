@@ -58,7 +58,7 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
       
       {/* Widget container - square on mobile, rounded on desktop */}
       <div className={cn(
-        "relative w-full max-w-md h-[650px] bg-white border-4 border-black overflow-hidden flex flex-col",
+        "relative w-full max-w-md h-[700px] bg-white border-4 border-black overflow-hidden flex flex-col",
         // Rounded corners on desktop/tablet, square on mobile
         isMobileView 
           ? "rounded-none shadow-none" 

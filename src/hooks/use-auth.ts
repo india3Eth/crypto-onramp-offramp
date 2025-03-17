@@ -98,7 +98,7 @@ export function useAuth({
   };
 
   // Verify OTP function
-  const verify = async (email: string, otp: string): Promise<{ success: boolean; error?: string }> => {
+  const verify = async (email: string, otp: string): Promise<{ success: boolean; error?: string; redirectToOrder?: boolean }> => {
     try {
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
@@ -107,23 +107,29 @@ export function useAuth({
         },
         body: JSON.stringify({ email, otp }),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         return { 
           success: false, 
           error: data.error || 'Failed to verify code' 
         };
       }
-
+  
       // Refresh user data after successful verification
       const userRes = await fetch('/api/auth/user');
       if (userRes.ok) {
         const userData = await userRes.json();
         setUser(userData);
+        
+        // Check if there's a pending order to return to
+        return { 
+          success: true,
+          redirectToOrder: localStorage.getItem('returnToOrderSummary') === 'true'
+        };
       }
-
+  
       return { success: true };
     } catch (error) {
       console.error('Verification error:', error);
