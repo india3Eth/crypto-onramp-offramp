@@ -143,6 +143,30 @@ export function QuoteForm({
     })
   }
 
+  // Format the exchange rate correctly
+  const formatExchangeRate = () => {
+    if (!quote || !quote.rate) return null;
+    
+    // Determine which way to display the rate based on the mode
+    const rate = parseFloat(quote.rate);
+    
+    if (mode === "buy") {
+      // For buying crypto with fiat: show how much crypto you get per unit of fiat
+      return (
+        <div className="font-medium text-sm">
+          1 {formData.toCurrency} = <span className="text-blue-800 font-bold">{rate.toFixed(3)}</span> {formData.fromCurrency}
+        </div>
+      );
+    } else {
+      // For selling crypto for fiat: show how much fiat you get per unit of crypto
+      return (
+        <div className="font-medium text-sm">
+          1 {formData.fromCurrency} = <span className="text-blue-800 font-bold">{rate.toFixed(3)}</span> {formData.toCurrency}
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header with title and mode toggle button */}
@@ -174,11 +198,8 @@ export function QuoteForm({
       {quote && (
         <div className="rounded-xl bg-blue-50 border border-blue-200 shadow-sm p-4">
           <div className="flex items-center justify-between">
-            {/* Rate information */}
-            {/* Reduced font size for better readability */}
-            <div className="font-medium text-sm">
-              1 {formData.fromCurrency} = <span className="text-blue-800 font-bold">{parseFloat(quote.rate).toFixed(3)}</span> {formData.toCurrency}
-            </div>
+            {/* Rate information with correct formatting */}
+            {formatExchangeRate()}
             
             {/* Enhanced timer component with better contrast */}
             <div className="flex items-center gap-2">
