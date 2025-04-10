@@ -39,12 +39,45 @@ export function QuoteForm({
 }: QuoteFormProps) {
   const lastTimestampRef = useRef<number>(lastQuoteTimestamp || 0)
   
+  // State to keep track of filtered payment methods
+  const [filteredPaymentMethods, setFilteredPaymentMethods] = useState<any[]>([])
+  
   // Use our custom countdown timer hook
   const countdown = useCountdownTimer(
     15, // Initial time in seconds
     onCreateQuote, // Callback when timer reaches zero
     [quote] // Dependencies that reset the timer when changed
   )
+  
+  // Filter payment methods based on selected currency
+  useEffect(() => {
+    const currencyToCheck = mode === "buy" 
+      ? formData.fromCurrency  // For buy flow, check fromCurrency (fiat)
+      : formData.toCurrency    // For sell flow, check toCurrency (fiat)
+    
+    // Filter payment methods that support the selected currency
+    const filtered = paymentMethods.filter(method => {
+      // First, check if the method supports the current mode (buy/sell)
+      const supportsMode = mode === "buy" 
+        ? method.onRampSupported 
+        : method.offRampSupported
+      
+      // Then check if it supports the selected currency
+      const supportsCurrency = method.availableFiatCurrencies.includes(currencyToCheck)
+      
+      return supportsMode && supportsCurrency
+    })
+    
+    setFilteredPaymentMethods(filtered)
+    
+    // If current payment method is not in filtered list, select the first available one
+    if (filtered.length > 0 && !filtered.some(m => m.id === formData.paymentMethodType)) {
+      onFormDataChange({
+        ...formData,
+        paymentMethodType: filtered[0].id
+      })
+    }
+  }, [mode, formData.fromCurrency, formData.toCurrency, paymentMethods])
   
   // Reset timer when a new quote is received or refreshed
   useEffect(() => {
@@ -192,15 +225,24 @@ export function QuoteForm({
             </div>
           </SelectTrigger>
           <SelectContent className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]">
-            {paymentMethods
-              .filter(method => mode === "buy" ? method.onRampSupported : method.offRampSupported)
-              .map(method => (
+            {filteredPaymentMethods.length > 0 ? (
+              filteredPaymentMethods.map(method => (
                 <SelectItem key={method.id} value={method.id}>
                   {method.id.replace(/_/g, ' ')}
                 </SelectItem>
-              ))}
+              ))
+            ) : (
+              <SelectItem value="" disabled>
+                No payment methods available for this currency
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
+        {filteredPaymentMethods.length === 0 && (
+          <p className="text-xs text-red-500 mt-1">
+            No payment methods support {mode === "buy" ? formData.fromCurrency : formData.toCurrency} for {mode === "buy" ? "buying" : "selling"}. Try another currency.
+          </p>
+        )}
       </div>
     </div>
   )
