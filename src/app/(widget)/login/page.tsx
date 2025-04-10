@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 
-export default function LoginPage() {
+// Client component that uses useSearchParams
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [step, setStep] = useState<"email" | "otp">("email")
@@ -254,10 +255,26 @@ export default function LoginPage() {
   )
 
   return (
+    <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
+      {step === "email" ? renderEmailStep() : renderOTPStep()}
+    </Card>
+  )
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+  return (
     <div className="space-y-6">
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
-        {step === "email" ? renderEmailStep() : renderOTPStep()}
-      </Card>
+      <Suspense fallback={
+        <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6 flex justify-center items-center" style={{height: "420px"}}>
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full inline-block mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </Card>
+      }>
+        <LoginContent />
+      </Suspense>
       
       {/* Demo helper - remove this in production */}
       <div className="text-center text-xs text-gray-500">
