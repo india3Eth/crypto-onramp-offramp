@@ -7,6 +7,7 @@ import { ArrowUpDown, Wallet, Clock, RefreshCw } from "lucide-react"
 import type { QuoteRequest } from "@/types/exchange"
 import { useCountdownTimer } from "@/hooks/use-countdown-timer"
 import { CurrencySelect } from "@/components/exchange/currency-select"
+import { FeeDisplay } from "@/components/exchange/fee-display"
 
 interface QuoteFormProps {
   mode: "buy" | "sell"
@@ -219,6 +220,13 @@ export function QuoteForm({
               </button>
             </div>
           </div>
+          
+          {/* Fee display */}
+          {quote.fees && quote.fees.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-blue-200">
+              <FeeDisplay fees={quote.fees} mode={mode} />
+            </div>
+          )}
         </div>
       )}
 

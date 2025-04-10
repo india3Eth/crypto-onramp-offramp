@@ -29,7 +29,14 @@ export class QuoteService {
     
     try {
       // Call API to get quote
-      return await apiClient.request<Quote>('POST', API_PATHS.QUOTE, data);
+      const quote = await apiClient.request<Quote>('POST', API_PATHS.QUOTE, data);
+      
+      // Ensure fees field is always an array
+      if (!quote.fees) {
+        quote.fees = [];
+      }
+      
+      return quote;
     } catch (error) {
       console.error('Error creating quote:', error);
       throw error;

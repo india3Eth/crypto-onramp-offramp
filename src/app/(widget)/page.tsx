@@ -156,7 +156,8 @@ export default function HomePage() {
         paymentMethodType: formData.paymentMethodType,
         chain: formData.chain,
         rate: parseFloat(quote.rate).toFixed(6),
-        lastUpdated: Date.now() // Add timestamp for the timer
+        lastUpdated: Date.now(), // Add timestamp for the timer
+        fees: quote.fees || []
       };
       
       localStorage.setItem('currentQuote', JSON.stringify(quoteData));

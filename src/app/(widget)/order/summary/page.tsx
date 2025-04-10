@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
 import { ArrowLeft, CheckCircle, ArrowRight, Clock } from "lucide-react"
+import { FeeDisplay } from "@/components/exchange/fee-display"
 
 export default function OrderSummaryPage() {
   const router = useRouter()
@@ -129,8 +130,12 @@ export default function OrderSummaryPage() {
             )}
             
             <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="font-bold">Fee:</span>
-              <span>Included</span>
+              <span className="font-bold">Fees:</span>
+              {order.quote && order.quote.fees && order.quote.fees.length > 0 ? (
+                <FeeDisplay fees={order.quote.fees} mode={order.mode} />
+              ) : (
+                <span>Included</span>
+              )}
             </div>
             
             <div className="flex justify-between items-center">
