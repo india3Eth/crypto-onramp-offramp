@@ -20,6 +20,7 @@
     "jose": "^6.0.8",
     "lucide-react": "^0.474.0",
     "mongodb": "^6.13.1",
+    "multicoin-address-validator": "^0.5.25",
     "next": "15.1.6",
     "nodemailer": "^6.10.0",
     "react": "^19.0.0",

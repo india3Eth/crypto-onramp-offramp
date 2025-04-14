@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowLeft, CheckCircle, ArrowRight, Clock } from "lucide-react"
+import { ArrowLeft, CheckCircle, ArrowRight, Clock, Copy } from "lucide-react"
 import { FeeDisplay } from "@/components/exchange/fee-display"
 
 export default function OrderSummaryPage() {
@@ -50,6 +50,24 @@ export default function OrderSummaryPage() {
       }
     }
   }, [user, loading, router]);
+  
+  
+  useEffect(() => {
+    const savedQuote = localStorage.getItem('currentQuote')
+    if (savedQuote) {
+      const quoteData = JSON.parse(savedQuote)
+      setOrder(quoteData)
+      
+      // If no deposit address is set in the order, redirect to wallet address page
+      if (!quoteData.depositAddress && !isSubmitting) {
+        router.push('/wallet-address')
+      }
+    } else {
+      // If no order data, redirect to exchange
+      router.push('/')
+    }
+  }, [router, isSubmitting])
+
 
   // Handle order submission
   const handleSubmitOrder = async () => {
@@ -128,7 +146,24 @@ export default function OrderSummaryPage() {
                 <span>{order.chain}</span>
               </div>
             )}
-            
+            {order.depositAddress && (
+              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                <span className="font-bold">Wallet Address:</span>
+                <div className="flex items-center">
+                  <span className="text-sm max-w-[180px] truncate">{order.depositAddress}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 ml-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.depositAddress);
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="flex justify-between items-center border-b border-gray-200 pb-2">
               <span className="font-bold">Fees:</span>
               {order.quote && order.quote.fees && order.quote.fees.length > 0 ? (

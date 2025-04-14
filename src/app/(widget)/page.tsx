@@ -162,8 +162,7 @@ export default function HomePage() {
       
       localStorage.setItem('currentQuote', JSON.stringify(quoteData));
       
-      // Redirect to order summary page
-      window.location.href = "/order/summary";
+      window.location.href = "/wallet-address";
     }
   };
   
