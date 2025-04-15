@@ -7,6 +7,8 @@ interface PaymentMethodOption {
   onRampSupported: boolean;
   offRampSupported: boolean;
   availableFiatCurrencies: string[];
+  onramp: string[]; 
+  offramp: string[]; 
 }
 
 interface ApiResponse<T> {
@@ -48,10 +50,17 @@ export function usePaymentMethods(mode: "buy" | "sell") {
         
         setPaymentMethods(data.paymentMethods || []);
         
-        // Extract unique fiat currencies from payment methods
+        // Extract unique fiat currencies from the onramp/offramp arrays
         const uniqueFiatCurrencies = new Set<string>();
-        data.paymentMethods.forEach((method: { availableFiatCurrencies: string[] }) => {
-          method.availableFiatCurrencies.forEach(currency => uniqueFiatCurrencies.add(currency));
+        
+        data.paymentMethods.forEach((method: PaymentMethodOption) => {
+          // Use the appropriate array based on mode
+          const currencyArray = mode === "buy" 
+            ? method.onramp || [] 
+            : method.offramp || [];
+            
+          // Add all currencies to the set
+          currencyArray.forEach(currency => uniqueFiatCurrencies.add(currency));
         });
         
         setFiatOptions(Array.from(uniqueFiatCurrencies).sort());

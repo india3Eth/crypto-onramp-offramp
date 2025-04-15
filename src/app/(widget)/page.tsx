@@ -32,7 +32,7 @@ export default function HomePage() {
     fromCurrency: "USD",
     toCurrency: "USDT",
     paymentMethodType: "CARD",
-    chain: "BEP20",
+    chain: "",
   })
   
   // UI states

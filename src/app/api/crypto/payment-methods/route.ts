@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CryptoService } from '@/services/crypto-service';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
 
 // Interface for payment method data
@@ -9,6 +8,8 @@ interface PaymentMethod {
   onRampSupported: boolean;
   availableFiatCurrencies: string[];
   availableCountries: string[];
+  onramp: string[]; 
+  offramp: string[]; 
 }
 
 export async function GET(request: NextRequest) {
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
       onRampSupported: method.onRampSupported,
       offRampSupported: method.offRampSupported,
       availableFiatCurrencies: method.availableFiatCurrencies,
+      onramp: method.onramp || [],
+      offramp: method.offramp || [],
       // Only include countries if specifically requested to keep response size manageable
       ...(searchParams.has('includeCountries') ? { availableCountries: method.availableCountries } : {})
     }));

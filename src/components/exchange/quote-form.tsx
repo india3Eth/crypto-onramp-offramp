@@ -63,8 +63,10 @@ export function QuoteForm({
         ? method.onRampSupported 
         : method.offRampSupported
       
-      // Then check if it supports the selected currency
-      const supportsCurrency = method.availableFiatCurrencies.includes(currencyToCheck)
+      // Then check if it supports the selected currency using the new arrays
+      const supportsCurrency = mode === "buy"
+        ? Array.isArray(method.onramp) && method.onramp.includes(currencyToCheck)
+        : Array.isArray(method.offramp) && method.offramp.includes(currencyToCheck)
       
       return supportsMode && supportsCurrency
     })
@@ -78,7 +80,7 @@ export function QuoteForm({
         paymentMethodType: filtered[0].id
       })
     }
-  }, [mode, formData.fromCurrency, formData.toCurrency, paymentMethods])
+  }, [mode, formData.fromCurrency, formData.toCurrency, paymentMethods, onFormDataChange, formData])
   
   // Reset timer when a new quote is received or refreshed
   useEffect(() => {
