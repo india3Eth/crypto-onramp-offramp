@@ -1,3 +1,6 @@
+// Updated version of the src/lib/api-client.ts file
+// This adds support for custom headers in API requests
+
 import { generateSignature } from '@/utils/signature';
 
 interface ApiClientOptions {
@@ -32,12 +35,13 @@ export class ApiClient {
   
   /**
    * Make an authenticated API request with automatic retries
+   * Added support for custom headers
    */
   async request<T>(
     method: string,
     path: string,
     payload?: Record<string, any>,
-    headers?: Record<string, string>,
+    customHeaders?: Record<string, string>,
     retryCount = 0
   ): Promise<T> {
     try {
@@ -45,14 +49,13 @@ export class ApiClient {
       const signature = generateSignature(method, path);
       
       // Create request options
-      const customHeaders = headers || {};
       const options: RequestInit = {
         method,
         headers: {
           'Content-Type': 'application/json',
           'api-key': this.apiKey,
           'signature': signature,
-          ...customHeaders,
+          ...customHeaders, // Add custom headers
         },
       };
       
@@ -60,10 +63,7 @@ export class ApiClient {
       if (method !== 'GET' && payload) {
         options.body = JSON.stringify(payload);
       }
-      console.log('API request:', { method, path, payload, headers });
-      console.log('API request options:', options);
-      console.log('API request URL:', `${this.baseUrl}${path}`);
-     
+      
       // Make the request
       const response = await fetch(`${this.baseUrl}${path}`, options);
       
@@ -95,7 +95,7 @@ export class ApiClient {
         console.warn(`API request failed, retrying in ${delay}ms (${retryCount + 1}/${this.maxRetries})`, { method, path, error });
         
         await this.sleep(delay);
-        return this.request<T>(method, path, payload, undefined, retryCount + 1);
+        return this.request<T>(method, path, payload, customHeaders, retryCount + 1);
       }
       
       // Max retries exceeded or non-retryable error

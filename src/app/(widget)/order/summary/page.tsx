@@ -6,14 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowLeft, CheckCircle, ArrowRight, Clock, Copy } from "lucide-react"
+import { ArrowLeft, CheckCircle, ArrowRight, Clock, Copy, AlertCircle } from "lucide-react"
 import { FeeDisplay } from "@/components/exchange/fee-display"
+import { createOnrampOrder, createOfframpOrder } from "@/app/actions/order"
+import { CheckoutIframe } from "@/components/order/checkout-iframe"
 
 export default function OrderSummaryPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
   const [order, setOrder] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
+  const [transactionId, setTransactionId] = useState<string | null>(null)
   
   // Load order data from localStorage
   useEffect(() => {
@@ -59,36 +64,99 @@ export default function OrderSummaryPage() {
       setOrder(quoteData)
       
       // If no deposit address is set in the order, redirect to wallet address page
-      if (!quoteData.depositAddress && !isSubmitting) {
+      if (!quoteData.depositAddress && !isSubmitting && !checkoutUrl) {
         router.push('/wallet-address')
       }
     } else {
       // If no order data, redirect to exchange
       router.push('/')
     }
-  }, [router, isSubmitting])
+  }, [router, isSubmitting, checkoutUrl])
 
 
   // Handle order submission
   const handleSubmitOrder = async () => {
-    setIsSubmitting(true)
-    
-    // Simulate API call with timeout
-    setTimeout(() => {
-      // Clear quote from localStorage
-      localStorage.removeItem('currentQuote')
+    try {
+      setIsSubmitting(true)
+      setError(null)
       
-      // Show success and redirect to success page
-      router.push('/order/success')
+      if (!order) {
+        throw new Error("Order data not found")
+      }
+      
+      // Determine which API to call based on mode (buy/sell)
+      let result
+      if (order.mode === "buy") {
+        result = await createOnrampOrder(order, order.depositAddress)
+      } else {
+        result = await createOfframpOrder(order, order.depositAddress)
+      }
+      
+      if (!result.success) {
+        throw new Error(result.message || "Failed to create order")
+      }
+      
+      // Store the checkout URL and transaction ID
+      if (result.checkoutUrl) {
+        setCheckoutUrl(result.checkoutUrl)
+      }
+      
+      if (result.transactionId) {
+        setTransactionId(result.transactionId)
+        
+        // Store transaction ID in the current order
+        const updatedOrder = {
+          ...order,
+          transactionId: result.transactionId
+        }
+        localStorage.setItem('currentQuote', JSON.stringify(updatedOrder))
+      }
+      
+      // If this is an offramp (sell) order, or no checkout URL is provided,
+      // redirect to success page directly
+      if (order.mode === "sell" || !result.checkoutUrl) {
+        router.push('/order/success')
+      }
+      
+    } catch (error) {
+      console.error("Error submitting order:", error)
+      setError(error instanceof Error ? error.message : "An unexpected error occurred")
+    } finally {
       setIsSubmitting(false)
-    }, 1500)
+    }
   }
   
+  // Handle completion of checkout
+  const handleCheckoutComplete = () => {
+    // Clear quote from localStorage
+    localStorage.removeItem('currentQuote')
+    
+    // Show success and redirect to success page
+    router.push('/order/success')
+  }
+  
+  // Handle back from checkout
+  const handleBackFromCheckout = () => {
+    setCheckoutUrl(null)
+  }
+  
+  // If loading or no order data, show loading spinner
   if (loading || !order) {
     return (
       <div className="flex justify-center items-center p-12">
         <LoadingSpinner text="Loading order details..." />
       </div>
+    )
+  }
+
+  // If we have a checkout URL, show the iframe
+  if (checkoutUrl) {
+    return (
+      <CheckoutIframe
+        checkoutUrl={checkoutUrl}
+        onBack={handleBackFromCheckout}
+        onComplete={handleCheckoutComplete}
+      />
     )
   }
 
@@ -181,6 +249,14 @@ export default function OrderSummaryPage() {
               </div>
             </div>
           </div>
+          
+          {/* Error display */}
+          {error && (
+            <div className="p-4 mt-2 bg-red-100 text-red-600 border-2 border-red-600 rounded-md flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+          )}
           
           {/* Action buttons */}
           <div className="pt-4">
