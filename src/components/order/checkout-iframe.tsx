@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
@@ -19,18 +19,65 @@ export function CheckoutIframe({
 }: CheckoutIframeProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  
+  // Handle iframe navigation to detect URL changes
+  useEffect(() => {
+    // Observe iframe URL changes by hooking into the load event
+    const handleIframeNavigation = () => {
+      if (!iframeRef.current) return;
+      
+      try {
+        // When iframe location changes, check if it contains "success" in the URL
+        // This is a fallback for cases where postMessage doesn't work
+        const iframeLocation = iframeRef.current.contentWindow?.location.href;
+        
+        if (iframeLocation && (
+            iframeLocation.includes('/success') || 
+            iframeLocation.includes('/order/success') ||
+            iframeLocation.includes('result.html?OrderMd=') // This matches the URL in your screenshot
+        )) {
+          console.log("Success URL detected in iframe:", iframeLocation);
+          // Detected success page, trigger completion
+          if (onComplete) {
+            onComplete();
+          }
+        }
+      } catch (e) {
+        // Security policies may prevent accessing iframe location
+        // This is expected for cross-origin iframes
+        console.log("Cannot access iframe location due to security restrictions");
+      }
+    };
+
+    const iframe = iframeRef.current;
+    if (iframe) {
+      iframe.addEventListener('load', handleIframeNavigation);
+      return () => {
+        iframe.removeEventListener('load', handleIframeNavigation);
+      };
+    }
+  }, [onComplete]);
   
   // Handle iframe messages for when payment is completed or canceled
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log("Received message from iframe:", event.data);
+      
       // Check for completion message
       if (event.data && (
           event.data.status === "success" || 
           event.data.status === "completed" ||
-          event.data.paymentStatus === "success"
+          event.data.paymentStatus === "success" ||
+          // Check for URLs containing success indicators
+          (typeof event.data === 'string' && (
+            event.data.includes('/success') || 
+            event.data.includes('result.html?OrderMd=')
+          ))
       )) {
+        console.log("Success event detected from iframe");
         if (onComplete) {
-          onComplete()
+          onComplete();
         }
       }
       
@@ -40,31 +87,62 @@ export function CheckoutIframe({
           event.data.status === "canceled" ||
           event.data.status === "failed" ||
           event.data.paymentStatus === "cancelled" ||
-          event.data.paymentStatus === "failed"
+          event.data.paymentStatus === "failed" ||
+          // Check for URLs containing cancel indicators
+          (typeof event.data === 'string' && (
+            event.data.includes('/cancel') || 
+            event.data.includes('/failed')
+          ))
       )) {
+        console.log("Cancel event detected from iframe");
         if (onBack) {
-          onBack()
+          onBack();
         }
       }
-    }
+    };
     
-    window.addEventListener("message", handleMessage)
+    window.addEventListener("message", handleMessage);
     
     // Cleanup
     return () => {
-      window.removeEventListener("message", handleMessage)
-    }
-  }, [onComplete, onBack])
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [onComplete, onBack]);
   
   const handleBack = () => {
     if (onBack) {
-      onBack()
+      onBack();
     }
-  }
+  };
   
   const handleIframeLoad = () => {
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+    
+    // After iframe loads, check if we can detect a success page
+    if (iframeRef.current) {
+      try {
+        const iframeWindow = iframeRef.current.contentWindow;
+        const iframeLocation = iframeWindow?.location.href;
+        
+        console.log("Iframe loaded:", iframeLocation);
+        
+        // Try to check if it's a success page
+        if (iframeLocation && (
+          iframeLocation.includes('/success') || 
+          iframeLocation.includes('result.html?OrderMd=')
+        )) {
+          console.log("Success URL detected on iframe load:", iframeLocation);
+          // Redirect to success page after a short delay
+          setTimeout(() => {
+            if (onComplete) onComplete();
+          }, 500);
+        }
+      } catch (e) {
+        // Expected error for cross-origin iframes
+        console.log("Cannot access iframe location due to security restrictions");
+      }
+    }
+  };
   
   if (!checkoutUrl) {
     return (
@@ -111,6 +189,7 @@ export function CheckoutIframe({
         )}
         
         <iframe
+          ref={iframeRef}
           src={checkoutUrl}
           width="100%"
           height="600"

@@ -99,6 +99,14 @@ export default function OrderSummaryPage() {
       // Store the checkout URL and transaction ID
       if (result.checkoutUrl) {
         setCheckoutUrl(result.checkoutUrl)
+        
+        // Store transaction information with timestamp to track expiration
+        localStorage.setItem('checkoutSession', JSON.stringify({
+          checkoutUrl: result.checkoutUrl,
+          transactionId: result.transactionId,
+          timestamp: Date.now(),
+          orderId: order.quoteId
+        }))
       }
       
       if (result.transactionId) {
@@ -128,15 +136,23 @@ export default function OrderSummaryPage() {
   
   // Handle completion of checkout
   const handleCheckoutComplete = () => {
-    // Clear quote from localStorage
-    localStorage.removeItem('currentQuote')
+    console.log("Checkout complete, redirecting to success page")
     
-    // Show success and redirect to success page
-    router.push('/order/success')
+    // Clear quotes and checkout session from localStorage
+    localStorage.removeItem('currentQuote')
+    localStorage.removeItem('checkoutSession')
+    
+    // Show success and redirect to success page using the router
+    // We use replace instead of push to prevent going back to the checkout
+    router.replace('/order/success')
   }
   
   // Handle back from checkout
   const handleBackFromCheckout = () => {
+    console.log("User went back from checkout")
+    // Remove the checkout session from localStorage
+    localStorage.removeItem('checkoutSession')
+    // Clear the checkout URL to go back to the order summary
     setCheckoutUrl(null)
   }
   
