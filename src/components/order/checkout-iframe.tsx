@@ -35,8 +35,7 @@ export function CheckoutIframe({
         if (iframeLocation && (
             iframeLocation.includes('/success') || 
             iframeLocation.includes('/order/success') ||
-            iframeLocation.includes('result.html?OrderMd=') // This matches the URL in your screenshot
-        )) {
+            iframeLocation.includes('/cancel') )) {
           console.log("Success URL detected in iframe:", iframeLocation);
           // Detected success page, trigger completion
           if (onComplete) {
