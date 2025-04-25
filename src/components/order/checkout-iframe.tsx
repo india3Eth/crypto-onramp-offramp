@@ -28,18 +28,27 @@ export function CheckoutIframe({
       if (!iframeRef.current) return;
       
       try {
-        // When iframe location changes, check if it contains "success" in the URL
-        // This is a fallback for cases where postMessage doesn't work
+        // When iframe location changes, check if it contains "success" or "cancel" in the URL
         const iframeLocation = iframeRef.current.contentWindow?.location.href;
         
-        if (iframeLocation && (
-            iframeLocation.includes('/success') || 
-            iframeLocation.includes('/order/success') ||
-            iframeLocation.includes('/cancel') )) {
-          console.log("Success URL detected in iframe:", iframeLocation);
-          // Detected success page, trigger completion
-          if (onComplete) {
-            onComplete();
+        if (iframeLocation) {
+          console.log("Iframe navigation detected:", iframeLocation);
+          
+          if (iframeLocation.includes('/success') || 
+              iframeLocation.includes('/order/success') ||
+              iframeLocation.includes('result.html?OrderMd=')) {
+            console.log("Success URL detected in iframe:", iframeLocation);
+            // Detected success page, trigger completion
+            if (onComplete) {
+              onComplete();
+            }
+          } else if (iframeLocation.includes('/cancel') || 
+                    iframeLocation.includes('/order/cancel')) {
+            console.log("Cancel URL detected in iframe:", iframeLocation);
+            // Detected cancel page, trigger back function
+            if (onBack) {
+              onBack();
+            }
           }
         }
       } catch (e) {
@@ -56,7 +65,7 @@ export function CheckoutIframe({
         iframe.removeEventListener('load', handleIframeNavigation);
       };
     }
-  }, [onComplete]);
+  }, [onComplete, onBack]);
   
   // Handle iframe messages for when payment is completed or canceled
   useEffect(() => {
@@ -117,7 +126,7 @@ export function CheckoutIframe({
   const handleIframeLoad = () => {
     setIsLoading(false);
     
-    // After iframe loads, check if we can detect a success page
+    // After iframe loads, check if we can detect a success or cancel page
     if (iframeRef.current) {
       try {
         const iframeWindow = iframeRef.current.contentWindow;
@@ -125,16 +134,25 @@ export function CheckoutIframe({
         
         console.log("Iframe loaded:", iframeLocation);
         
-        // Try to check if it's a success page
-        if (iframeLocation && (
-          iframeLocation.includes('/success') || 
-          iframeLocation.includes('result.html?OrderMd=')
-        )) {
-          console.log("Success URL detected on iframe load:", iframeLocation);
-          // Redirect to success page after a short delay
-          setTimeout(() => {
-            if (onComplete) onComplete();
-          }, 500);
+        if (iframeLocation) {
+          // Try to check if it's a success page
+          if (iframeLocation.includes('/success') || 
+              iframeLocation.includes('result.html?OrderMd=')) {
+            console.log("Success URL detected on iframe load:", iframeLocation);
+            // Redirect to success page after a short delay
+            setTimeout(() => {
+              if (onComplete) onComplete();
+            }, 500);
+          }
+          
+          // Try to check if it's a cancel page
+          else if (iframeLocation.includes('/cancel')) {
+            console.log("Cancel URL detected on iframe load:", iframeLocation);
+            // Redirect to cancel page after a short delay
+            setTimeout(() => {
+              if (onBack) onBack();
+            }, 500);
+          }
         }
       } catch (e) {
         // Expected error for cross-origin iframes

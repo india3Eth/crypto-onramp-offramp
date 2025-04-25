@@ -149,11 +149,16 @@ export default function OrderSummaryPage() {
   
   // Handle back from checkout
   const handleBackFromCheckout = () => {
-    console.log("User went back from checkout")
+    console.log("User went back from checkout or checkout was cancelled")
     // Remove the checkout session from localStorage
     localStorage.removeItem('checkoutSession')
     // Clear the checkout URL to go back to the order summary
     setCheckoutUrl(null)
+    // Check if there was a cancellation
+    const cancelParam = new URLSearchParams(window.location.search).get('cancel')
+    if (cancelParam) {
+      router.replace('/order/cancel')
+    }
   }
   
   // If loading or no order data, show loading spinner
