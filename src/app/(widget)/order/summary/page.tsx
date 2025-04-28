@@ -20,6 +20,16 @@ export default function OrderSummaryPage() {
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [transactionId, setTransactionId] = useState<string | null>(null)
   
+  // Check for cancel parameter in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('cancel')) {
+      console.log("Cancel parameter detected in URL, redirecting to cancel page");
+      router.replace('/order/cancel');
+      return;
+    }
+  }, [router]);
+  
   // Load order data from localStorage
   useEffect(() => {
     const savedQuote = localStorage.getItem('currentQuote')
@@ -154,11 +164,6 @@ export default function OrderSummaryPage() {
     localStorage.removeItem('checkoutSession')
     // Clear the checkout URL to go back to the order summary
     setCheckoutUrl(null)
-    // Check if there was a cancellation
-    const cancelParam = new URLSearchParams(window.location.search).get('cancel')
-    if (cancelParam) {
-      router.replace('/order/cancel')
-    }
   }
   
   // If loading or no order data, show loading spinner

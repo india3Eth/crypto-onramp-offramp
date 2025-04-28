@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { useRouter } from "next/navigation"
 
 interface CheckoutIframeProps {
   checkoutUrl: string
@@ -17,6 +18,7 @@ export function CheckoutIframe({
   onBack,
   onComplete 
 }: CheckoutIframeProps) {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -41,14 +43,15 @@ export function CheckoutIframe({
             // Detected success page, trigger completion
             if (onComplete) {
               onComplete();
+            } else {
+              // Default redirect to success page
+              router.push('/order/success');
             }
           } else if (iframeLocation.includes('/cancel') || 
                     iframeLocation.includes('/order/cancel')) {
             console.log("Cancel URL detected in iframe:", iframeLocation);
-            // Detected cancel page, trigger back function
-            if (onBack) {
-              onBack();
-            }
+            // Detected cancel page, redirect directly to cancel page
+            router.push('/order/cancel');
           }
         }
       } catch (e) {
@@ -65,7 +68,7 @@ export function CheckoutIframe({
         iframe.removeEventListener('load', handleIframeNavigation);
       };
     }
-  }, [onComplete, onBack]);
+  }, [onComplete, onBack, router]);
   
   // Handle iframe messages for when payment is completed or canceled
   useEffect(() => {
@@ -86,6 +89,9 @@ export function CheckoutIframe({
         console.log("Success event detected from iframe");
         if (onComplete) {
           onComplete();
+        } else {
+          // Default redirect to success page
+          router.push('/order/success');
         }
       }
       
@@ -103,9 +109,8 @@ export function CheckoutIframe({
           ))
       )) {
         console.log("Cancel event detected from iframe");
-        if (onBack) {
-          onBack();
-        }
+        // Direct redirect to cancel page instead of using onBack
+        router.push('/order/cancel');
       }
     };
     
@@ -115,7 +120,7 @@ export function CheckoutIframe({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [onComplete, onBack]);
+  }, [onComplete, onBack, router]);
   
   const handleBack = () => {
     if (onBack) {
@@ -142,15 +147,16 @@ export function CheckoutIframe({
             // Redirect to success page after a short delay
             setTimeout(() => {
               if (onComplete) onComplete();
+              else router.push('/order/success');
             }, 500);
           }
           
           // Try to check if it's a cancel page
           else if (iframeLocation.includes('/cancel')) {
             console.log("Cancel URL detected on iframe load:", iframeLocation);
-            // Redirect to cancel page after a short delay
+            // Redirect directly to cancel page
             setTimeout(() => {
-              if (onBack) onBack();
+              router.push('/order/cancel');
             }, 500);
           }
         }
@@ -160,6 +166,15 @@ export function CheckoutIframe({
       }
     }
   };
+  
+  // Check URL parameters for cancel on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('cancel')) {
+      console.log("Cancel parameter detected in URL");
+      router.push('/order/cancel');
+    }
+  }, [router]);
   
   if (!checkoutUrl) {
     return (

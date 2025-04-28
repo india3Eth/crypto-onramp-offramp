@@ -36,15 +36,13 @@ export default function OrderCancelPage() {
       } catch (e) {
         console.error("Error sending message to parent:", e)
       }
-      
     }
 
-    if (!inIframe) {
-      localStorage.removeItem('currentQuote')
-      localStorage.removeItem('checkoutSession')
-    }
+    // Clean up any order data regardless of if we're in an iframe
+    localStorage.removeItem('currentQuote')
+    localStorage.removeItem('checkoutSession')
   }, [])
-
+  
   // If we're in an iframe, show a simplified version without navigation
   if (isInIframe) {
     return (
