@@ -11,7 +11,7 @@ import { createQuote } from "@/app/actions/quote"
 import { useCryptoOptions } from "@/hooks/use-crypto-options"
 import { usePaymentMethods } from "@/hooks/use-payment-methods"
 
-// New components
+// Components
 import { QuoteForm } from "@/components/exchange/quote-form"
 import { ConfigRefresher } from "@/components/admin/config-refresher"
 import { ErrorDisplay } from "@/components/ui/error-display"
@@ -38,6 +38,7 @@ export default function HomePage() {
   // UI states
   const [isLoadingQuote, setIsLoadingQuote] = useState(false)
   const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [apiErrorDetails, setApiErrorDetails] = useState<string | null>(null)
   const [quote, setQuote] = useState<any>(null)
   // Track the timestamp of the last quote update to trigger timer resets
   const [lastQuoteTimestamp, setLastQuoteTimestamp] = useState<number>(Date.now())
@@ -203,6 +204,7 @@ export default function HomePage() {
     try {
       setIsLoadingQuote(true);
       setQuoteError(null);
+      setApiErrorDetails(null);
       
       // Prepare request with only one amount field based on what was last modified
       const quoteRequest = prepareQuoteRequest();
@@ -225,9 +227,26 @@ export default function HomePage() {
       
     } catch (error) {
       console.error("Error fetching quote:", error);
-      setQuoteError(error instanceof Error 
-        ? error.message 
-        : "Failed to get quote. Please check your inputs and try again.");
+      
+      // Extract API error message if available
+      let errorMessage = "Failed to get quote. Please check your inputs and try again.";
+      let apiDetails = null;
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check if this is an API error with additional details
+        if (error.message.includes("API request failed:")) {
+          // Extract the specific API error message
+          const apiErrorMatch = error.message.match(/API request failed: (.+)/);
+          if (apiErrorMatch && apiErrorMatch[1]) {
+            apiDetails = apiErrorMatch[1];
+          }
+        }
+      }
+      
+      setQuoteError(errorMessage);
+      setApiErrorDetails(apiDetails);
     } finally {
       setIsLoadingQuote(false);
     }
@@ -278,9 +297,24 @@ export default function HomePage() {
                 lastQuoteTimestamp={lastQuoteTimestamp}
               />
 
-              {/* Error display */}
+              {/* Error display with API details */}
               {quoteError && (
-                <ErrorDisplay message={quoteError} />
+                <div className="p-3 bg-red-100 text-red-600 border-2 border-red-600 rounded-md">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p>{quoteError}</p>
+                      
+                      {/* Display detailed API error if available */}
+                      {apiErrorDetails && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-300 rounded text-sm">
+                          <p className="font-medium">API Error Details:</p>
+                          <p className="mt-1">{apiErrorDetails}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Continue button */}

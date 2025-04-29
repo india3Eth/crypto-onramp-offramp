@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client';
+import { apiClient, ApiError } from '@/lib/api-client';
 import type { QuoteRequest, Quote } from '@/types/exchange';
 
 // API paths
@@ -38,7 +38,19 @@ export class QuoteService {
       
       return quote;
     } catch (error) {
+      // Log the detailed error for debugging
       console.error('Error creating quote:', error);
+      
+      // If it's an ApiError, preserve the structure and error message from the API
+      if (error instanceof ApiError && error.errorMessage) {
+        // Create a new error that preserves the API error message but with a more informative context
+        const enhancedError = new Error(`Quote creation failed: ${error.errorMessage}`);
+        // Copy all properties from the original error to preserve the full error structure
+        Object.assign(enhancedError, error);
+        throw enhancedError;
+      }
+      
+      // Rethrow the original error if it's not a recognized API error
       throw error;
     }
   }
