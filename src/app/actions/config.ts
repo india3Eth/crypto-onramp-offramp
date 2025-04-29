@@ -28,48 +28,39 @@ interface PaymentMethod {
  * Merge payment methods with the same base ID (e.g., CARD_EU, CARD_INTL -> CARD)
  */
 function mergePaymentMethods(payments: PaymentMethod[]): PaymentMethod[] {
-  // Create a map to group payment methods by their base ID
   const paymentMethodsMap = new Map<string, PaymentMethod>();
   
   for (const payment of payments) {
-    // Extract the base ID (e.g., "CARD" from "CARD_EU")
     const originalId = payment.id;
     const baseId = payment.id.split('_')[0];
     
-    // Log the mapping for debugging
     logger.debug(`Mapping payment method: ${originalId} -> ${baseId}`);
     
     if (paymentMethodsMap.has(baseId)) {
       // If we already have an entry for this base ID, merge the data
       const existingPayment = paymentMethodsMap.get(baseId)!;
       
-      // Merge available fiat currencies (remove duplicates)
-      const mergedCurrencies = [
-        ...new Set([
-          ...existingPayment.availableFiatCurrencies,
-          ...payment.availableFiatCurrencies
-        ])
-      ];
+      // Merge currencies and countries (remove duplicates)
+      const mergedCurrencies = [...new Set([
+        ...existingPayment.availableFiatCurrencies,
+        ...payment.availableFiatCurrencies
+      ])];
       
-      // Merge available countries (remove duplicates)
-      const mergedCountries = [
-        ...new Set([
-          ...existingPayment.availableCountries,
-          ...payment.availableCountries
-        ])
-      ];
+      const mergedCountries = [...new Set([
+        ...existingPayment.availableCountries,
+        ...payment.availableCountries
+      ])];
       
-      // Merge onramp currencies (remove duplicates)
+      // Merge onramp and offramp currencies
       const mergedOnramp = payment.onramp || existingPayment.onramp || [];
       const onrampCurrencies = existingPayment.onramp || [];
       const mergedOnrampSet = new Set([...onrampCurrencies, ...mergedOnramp]);
       
-      // Merge offramp currencies (remove duplicates)
       const mergedOfframp = payment.offramp || existingPayment.offramp || [];
       const offrampCurrencies = existingPayment.offramp || [];
       const mergedOfframpSet = new Set([...offrampCurrencies, ...mergedOfframp]);
       
-      // Update the entry in our map
+      // Update the entry
       paymentMethodsMap.set(baseId, {
         ...existingPayment,
         availableFiatCurrencies: mergedCurrencies,
@@ -78,28 +69,81 @@ function mergePaymentMethods(payments: PaymentMethod[]): PaymentMethod[] {
         offRampSupported: existingPayment.offRampSupported || payment.offRampSupported,
         onramp: [...mergedOnrampSet],
         offramp: [...mergedOfframpSet],
-        // Add metadata about original IDs that were merged
         originalIds: [...(existingPayment.originalIds || [existingPayment.id]), payment.id]
       });
       
-      logger.debug(`Merged payment method: ${originalId} into ${baseId}`, {
-        currenciesCount: mergedCurrencies.length,
-        countriesCount: mergedCountries.length
-      });
+      logger.debug(`Merged payment method: ${originalId} into ${baseId}`);
     } else {
-      // If this is the first occurrence of this base ID, store it with its original ID
+      // Add new payment method
       paymentMethodsMap.set(baseId, {
         ...payment,
-        id: baseId, // Update the ID to the base ID
-        originalIds: [payment.id] // Track the original ID
+        id: baseId,
+        originalIds: [payment.id]
       });
       
       logger.debug(`Added new payment method: ${originalId} as ${baseId}`);
     }
   }
   
-  // Convert the map back to an array
   return Array.from(paymentMethodsMap.values());
+}
+
+/**
+ * Extract supported fiat currencies for each payment method from crypto assets
+ */
+function extractPaymentMethodCurrencies(cryptoAssets: any[]): Record<string, { onramp: string[], offramp: string[] }> {
+  const result: Record<string, { onramp: string[], offramp: string[] }> = {};
+  const tempData: Record<string, { onramp: Set<string>, offramp: Set<string> }> = {};
+  
+  // Process all crypto assets
+  cryptoAssets.forEach(crypto => {
+    if (!crypto.paymentLimits || !Array.isArray(crypto.paymentLimits)) return;
+    
+    // Process each payment limit entry
+    crypto.paymentLimits.forEach((limit: { id: string; currency: string; methodType: string; }) => {
+      const baseId = limit.id.split('_')[0];
+      
+      // Initialize entry if it doesn't exist
+      if (!tempData[baseId]) {
+        tempData[baseId] = { onramp: new Set(), offramp: new Set() };
+      }
+      
+      // Add currency to appropriate set
+      if (limit.methodType === "onramp") {
+        tempData[baseId].onramp.add(limit.currency);
+      } else if (limit.methodType === "offramp") {
+        tempData[baseId].offramp.add(limit.currency);
+      }
+    });
+  });
+  
+  // Convert Sets to arrays for final result
+  Object.keys(tempData).forEach(methodId => {
+    result[methodId] = {
+      onramp: Array.from(tempData[methodId].onramp),
+      offramp: Array.from(tempData[methodId].offramp)
+    };
+  });
+  
+  return result;
+}
+
+/**
+ * Enhance payment methods with onramp/offramp arrays
+ */
+function enhancePaymentMethods(
+  payments: PaymentMethod[], 
+  paymentMethodCurrencies: Record<string, { onramp: string[], offramp: string[] }>
+): PaymentMethod[] {
+  return payments.map(payment => {
+    const methodData = paymentMethodCurrencies[payment.id];
+    
+    return {
+      ...payment,
+      onramp: methodData ? methodData.onramp : [],
+      offramp: methodData ? methodData.offramp : [],
+    };
+  });
 }
 
 /**
@@ -141,14 +185,9 @@ export async function fetchAndStoreConfigs(): Promise<{ success: boolean; messag
     // Parse response
     const configData: ConfigResponse = await response.json();
     
-    // Merge payment methods with the same base ID
+    // Process and store data
     const mergedPayments = mergePaymentMethods(configData.payments);
-    logger.info(`Merged ${configData.payments.length} payment methods into ${mergedPayments.length} unique payment methods`);
-    
-    // Process payment method currencies from crypto assets
     const paymentMethodCurrencies = extractPaymentMethodCurrencies(configData.crypto);
-    
-    // Enhance payment methods with onramp/offramp arrays
     const enhancedPayments = enhancePaymentMethods(mergedPayments, paymentMethodCurrencies);
     
     // Store in MongoDB
@@ -165,7 +204,7 @@ export async function fetchAndStoreConfigs(): Promise<{ success: boolean; messag
     if (enhancedPayments && enhancedPayments.length > 0) {
       await db.collection(COLLECTIONS.PAYMENTS).deleteMany({});
       await db.collection(COLLECTIONS.PAYMENTS).insertMany(enhancedPayments);
-      logger.info(`Stored ${enhancedPayments.length} merged payment methods with onramp/offramp arrays`);
+      logger.info(`Stored ${enhancedPayments.length} merged payment methods`);
     }
     
     // Store crypto
@@ -177,91 +216,11 @@ export async function fetchAndStoreConfigs(): Promise<{ success: boolean; messag
     
     return { 
       success: true, 
-      message: `Config data stored successfully. Countries: ${configData.countries.length}, Payments: ${enhancedPayments.length} (merged from ${configData.payments.length} with onramp/offramp arrays), Crypto: ${configData.crypto.length}` 
+      message: `Config data stored successfully. Countries: ${configData.countries.length}, Payments: ${enhancedPayments.length} (merged from ${configData.payments.length}), Crypto: ${configData.crypto.length}` 
     };
   } catch (error) {
     logger.error("Error fetching and storing config:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return { success: false, message: errorMessage };
   }
-}
-
-/**
- * Extract supported fiat currencies for each payment method from crypto assets
- */
-function extractPaymentMethodCurrencies(cryptoAssets: any[]): Record<string, { onramp: string[], offramp: string[] }> {
-  const paymentMethodCurrencies: Record<string, { onramp: Set<string>, offramp: Set<string> }> = {};
-  
-  // Process all crypto assets
-  cryptoAssets.forEach(crypto => {
-    // Skip if no payment limits
-    if (!crypto.paymentLimits || !Array.isArray(crypto.paymentLimits)) {
-      return;
-    }
-    
-    // Process each payment limit entry
-    crypto.paymentLimits.forEach((limit: { id: string; currency: string; methodType: string; }) => {
-      const methodId = limit.id;
-      const currency = limit.currency;
-      const methodType = limit.methodType;
-      
-      // Extract the base ID (e.g., "CARD" from "CARD_EU")
-      const baseId = methodId.split('_')[0];
-      
-      // Initialize entry if it doesn't exist for base ID
-      if (!paymentMethodCurrencies[baseId]) {
-        paymentMethodCurrencies[baseId] = {
-          onramp: new Set(),
-          offramp: new Set()
-        };
-      }
-      
-      // Add currency to appropriate array based on method type
-      if (methodType === "onramp") {
-        paymentMethodCurrencies[baseId].onramp.add(currency);
-      } else if (methodType === "offramp") {
-        paymentMethodCurrencies[baseId].offramp.add(currency);
-      }
-    });
-  });
-  
-  // Convert Sets to arrays for final result
-  const result: Record<string, { onramp: string[], offramp: string[] }> = {};
-  
-  Object.keys(paymentMethodCurrencies).forEach(methodId => {
-    result[methodId] = {
-      onramp: Array.from(paymentMethodCurrencies[methodId].onramp),
-      offramp: Array.from(paymentMethodCurrencies[methodId].offramp)
-    };
-  });
-  
-  return result;
-}
-
-/**
- * Enhance payment methods with onramp/offramp arrays
- */
-function enhancePaymentMethods(
-  payments: PaymentMethod[], 
-  paymentMethodCurrencies: Record<string, { onramp: string[], offramp: string[] }>
-): PaymentMethod[] {
-  return payments.map(payment => {
-    const methodData = paymentMethodCurrencies[payment.id];
-    
-    // If we have data for this payment method, add it to the payment object
-    if (methodData) {
-      return {
-        ...payment,
-        onramp: methodData.onramp,
-        offramp: methodData.offramp
-      };
-    }
-    
-    // Otherwise, initialize with empty arrays
-    return {
-      ...payment,
-      onramp: [],
-      offramp: []
-    };
-  });
 }

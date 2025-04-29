@@ -43,7 +43,7 @@ export function useAuth({
           const userData = await res.json();
           setUser(userData);
           
-          // Redirect if needed (user is found and redirectIfFound is true)
+          // Redirect if needed
           if (redirectTo && redirectIfFound) {
             router.push(redirectTo);
           }
@@ -51,7 +51,7 @@ export function useAuth({
           // User is not authenticated
           setUser(null);
           
-          // Redirect if needed (user is not found and redirectIfFound is false)
+          // Redirect if needed
           if (redirectTo && !redirectIfFound) {
             router.push(redirectTo);
           }
@@ -81,19 +81,13 @@ export function useAuth({
       const data = await response.json();
 
       if (!response.ok) {
-        return { 
-          success: false, 
-          error: data.error || 'Failed to login' 
-        };
+        return { success: false, error: data.error || 'Failed to login' };
       }
 
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: 'An unexpected error occurred' 
-      };
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
@@ -111,10 +105,7 @@ export function useAuth({
       const data = await response.json();
   
       if (!response.ok) {
-        return { 
-          success: false, 
-          error: data.error || 'Failed to verify code' 
-        };
+        return { success: false, error: data.error || 'Failed to verify code' };
       }
   
       // Refresh user data after successful verification
@@ -123,7 +114,6 @@ export function useAuth({
         const userData = await userRes.json();
         setUser(userData);
         
-        // Check if there's a pending order to return to
         return { 
           success: true,
           redirectToOrder: localStorage.getItem('returnToOrderSummary') === 'true'
@@ -133,10 +123,7 @@ export function useAuth({
       return { success: true };
     } catch (error) {
       console.error('Verification error:', error);
-      return { 
-        success: false, 
-        error: 'An unexpected error occurred' 
-      };
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
@@ -156,7 +143,7 @@ export function useAuth({
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      throw error; // Re-throw the error so the calling component can handle it
+      throw error;
     }
   };
 

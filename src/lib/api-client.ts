@@ -60,10 +60,7 @@ export class ApiClient {
       if (method !== 'GET' && payload) {
         options.body = JSON.stringify(payload);
       }
-      console.log('API request:', { method, path, payload, headers });
-      console.log('API request options:', options);
-      console.log('API request URL:', `${this.baseUrl}${path}`);
-     
+      
       // Make the request
       const response = await fetch(`${this.baseUrl}${path}`, options);
       
