@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Home, User, HelpCircle, CreditCard } from "lucide-react"
+import { Menu, X, Home, User, HelpCircle, CreditCard, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -21,23 +21,16 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
     const checkMobile = () => {
       setIsMobileView(window.innerWidth < 640) // 640px is the sm breakpoint in Tailwind
     }
-    
+
     // Initial check
     checkMobile()
-    
+
     // Add event listener for window resize
     window.addEventListener('resize', checkMobile)
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  const menuItems = [
-    { href: "/", label: "Exchange", icon: <Home size={20} /> },
-    { href: "/profile", label: "Profile", icon: <User size={20} /> },
-    { href: "/about", label: "About Us", icon: <HelpCircle size={20} /> },
-    { href: "/support", label: "Support", icon: <CreditCard size={20} /> },
-  ]
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
 
@@ -55,13 +48,13 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
           <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400 rounded-lg rotate-45 transform-gpu animate-float opacity-20"></div>
         </div>
       )}
-      
+
       {/* Widget container - square on mobile, rounded on desktop */}
       <div className={cn(
         "relative w-full max-w-md h-[700px] bg-white border-4 border-black overflow-hidden flex flex-col",
         // Rounded corners on desktop/tablet, square on mobile
-        isMobileView 
-          ? "rounded-none shadow-none" 
+        isMobileView
+          ? "rounded-none shadow-none"
           : "rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,0.9)]",
         // Full screen on mobile
         isMobileView && "h-screen max-h-screen"
@@ -79,23 +72,83 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
           <div className="absolute top-[72px] left-0 right-0 bg-white border-b-4 border-black z-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)]">
             <nav className="p-2">
               <ul className="space-y-1">
-                {menuItems.map((item) => (
-                  <li key={item.href}>
-                    <Link 
-                      href={item.href}
-                      className={cn(
-                        "flex items-center p-3 rounded-lg font-medium transition-colors",
-                        pathname === item.href
-                          ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
-                          : "hover:bg-gray-100"
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <span className="mr-3">{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+                <li>
+                  <Link
+                    href="/"
+                    className={cn(
+                      "flex items-center p-3 rounded-lg font-medium transition-colors",
+                      pathname === "/"
+                        ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                        : "hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Home size={20} className="mr-3" />
+                    Exchange
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/profile"
+                    className={cn(
+                      "flex items-center p-3 rounded-lg font-medium transition-colors",
+                      pathname === "/profile"
+                        ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                        : "hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User size={20} className="mr-3" />
+                    Profile
+                  </Link>
+                </li>
+
+
+                <li>
+                  <Link
+                    href="/transactions"
+                    className={cn(
+                      "flex items-center p-3 rounded-lg font-medium transition-colors",
+                      pathname === "/transactions"
+                        ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                        : "hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Clock size={20} className="mr-3" />
+                    Transactions
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/support"
+                    className={cn(
+                      "flex items-center p-3 rounded-lg font-medium transition-colors",
+                      pathname === "/support"
+                        ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                        : "hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <CreditCard size={20} className="mr-3" />
+                    Support
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/about"
+                    className={cn(
+                      "flex items-center p-3 rounded-lg font-medium transition-colors",
+                      pathname === "/about"
+                        ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                        : "hover:bg-gray-100"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <HelpCircle size={20} className="mr-3" />
+                    About Us
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>
@@ -109,22 +162,64 @@ export function WidgetContainer({ children }: WidgetContainerProps) {
         {/* Widget bottom navigation */}
         <nav className="bg-gray-100 border-t-4 border-black p-2">
           <ul className="flex justify-around">
-            {menuItems.map((item) => (
-              <li key={item.href}>
-                <Link 
-                  href={item.href} 
-                  className={cn(
-                    "flex flex-col items-center p-2 rounded-lg font-medium",
-                    pathname === item.href
-                      ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
-                      : "hover:bg-gray-200"
-                  )}
-                >
-                  {item.icon}
-                  <span className="text-xs mt-1">{item.label}</span>
-                </Link>
-              </li>
-            ))}
+            {/* Custom bottom navigation items */}
+            <li>
+              <Link
+                href="/"
+                className={cn(
+                  "flex flex-col items-center p-2 rounded-lg font-medium",
+                  pathname === "/"
+                    ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                    : "hover:bg-gray-200"
+                )}
+              >
+                <Home size={20} />
+                <span className="text-xs mt-1">Exchange</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/profile"
+                className={cn(
+                  "flex flex-col items-center p-2 rounded-lg font-medium",
+                  pathname === "/profile"
+                    ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                    : "hover:bg-gray-200"
+                )}
+              >
+                <User size={20} />
+                <span className="text-xs mt-1">Profile</span>
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                href="/support"
+                className={cn(
+                  "flex flex-col items-center p-2 rounded-lg font-medium",
+                  pathname === "/support"
+                    ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                    : "hover:bg-gray-200"
+                )}
+              >
+                <CreditCard size={20} />
+                <span className="text-xs mt-1">Support</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/transactions"
+                className={cn(
+                  "flex flex-col items-center p-2 rounded-lg font-medium",
+                  pathname === "/transactions"
+                    ? "bg-yellow-300 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+                    : "hover:bg-gray-200"
+                )}
+              >
+                <Clock size={20} />
+                <span className="text-xs mt-1">Transactions</span>
+              </Link>
+            </li>
           </ul>
         </nav>
       </div>
