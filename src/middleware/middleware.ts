@@ -12,7 +12,9 @@ function generateRequestId(): string {
 const PROTECTED_ROUTES = [
   '/kyc',
   '/profile',
+  '/kyc-limit-check',
   '/transactions',
+  '/wallet-address',
 ]
 
 // Routes that require admin access

@@ -163,7 +163,7 @@ export default function HomePage() {
       
       localStorage.setItem('currentQuote', JSON.stringify(quoteData));
       
-      window.location.href = "/wallet-address";
+      window.location.href = "/kyc-limit-check";
     }
   };
   

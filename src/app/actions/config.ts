@@ -147,6 +147,37 @@ function enhancePaymentMethods(
 }
 
 /**
+ * Store exchange rates in MongoDB
+ */
+async function storeExchangeRates(rates: Record<string, Record<string, number>>): Promise<void> {
+  try {
+    const db = await getDb();
+    const collection = db.collection(COLLECTIONS.SETTINGS);
+    
+    // Store as a separate document with a type identifier
+    await collection.updateOne(
+      { type: 'fiatExchangeRates' },
+      { 
+        $set: { 
+          rates: rates.EUR || {}, // EUR rates are what we need for comparison
+          updatedAt: new Date() 
+        },
+        $setOnInsert: { 
+          type: 'fiatExchangeRates',
+          createdAt: new Date() 
+        }
+      },
+      { upsert: true }
+    );
+    
+    logger.info(`Stored exchange rates in database`);
+  } catch (error) {
+    logger.error("Error storing exchange rates:", error);
+    throw error;
+  }
+}
+
+/**
  * Fetch configurations from the external API and store in MongoDB
  */
 export async function fetchAndStoreConfigs(): Promise<{ success: boolean; message: string }> {
@@ -214,9 +245,17 @@ export async function fetchAndStoreConfigs(): Promise<{ success: boolean; messag
       logger.info(`Stored ${configData.crypto.length} cryptocurrencies`);
     }
     
+    // Store exchange rates if available
+    if (configData.fiatExchangeRates) {
+      await storeExchangeRates(configData.fiatExchangeRates);
+      logger.info("Stored fiat exchange rates");
+    } else {
+      logger.warn("No fiat exchange rates found in config response");
+    }
+    
     return { 
       success: true, 
-      message: `Config data stored successfully. Countries: ${configData.countries.length}, Payments: ${enhancedPayments.length} (merged from ${configData.payments.length}), Crypto: ${configData.crypto.length}` 
+      message: `Config data stored successfully. Countries: ${configData.countries.length}, Payments: ${enhancedPayments.length} (merged from ${configData.payments.length}), Crypto: ${configData.crypto.length}, Exchange Rates: ${configData.fiatExchangeRates ? 'Updated' : 'Not available'}` 
     };
   } catch (error) {
     logger.error("Error fetching and storing config:", error);

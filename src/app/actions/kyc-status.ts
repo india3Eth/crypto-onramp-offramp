@@ -31,6 +31,7 @@ interface KYCStatusResponse {
 
 /**
  * Server action to fetch the latest KYC status from the external API
+ * Enhanced to return KYC limit information
  */
 export async function refreshKycStatus(
   forLevel?: number // Optionally refresh status for a specific level
@@ -39,6 +40,22 @@ export async function refreshKycStatus(
   message: string;
   kycLevel?: string;
   kycStatus?: string;
+  kycLimits?: {
+    current: {
+      levelName: string;
+      levelLimits: Array<{
+        reserveTransactions: number;
+        reserveAmount: number;
+        maxTransactions: number;
+        maxAmount: number;
+        period: string;
+      }>;
+    };
+    next: {
+      levelNames: string[] | null;
+      levelLimits: any | null;
+    };
+  };
 }> {
   try {
     // Get current authenticated user
@@ -112,7 +129,6 @@ export async function refreshKycStatus(
     // Parse response
     const statusData: KYCStatusResponse = await response.json();
     
-    console.log("KYC Status API Response:", JSON.stringify(statusData, null, 2));
     
     // Map API status to our internal status
     let kycStatus: string;
@@ -165,11 +181,18 @@ export async function refreshKycStatus(
       level: kycLevel
     });
     
+    // Extract KYC limits from the response
+    const kycLimits = {
+      current: statusData.kyc.current,
+      next: statusData.kyc.next
+    };
+    
     return { 
       success: true, 
       message: "KYC status refreshed successfully", 
       kycLevel,
-      kycStatus
+      kycStatus,
+      kycLimits
     };
   } catch (error) {
     logger.error("Error refreshing KYC status:", error);
