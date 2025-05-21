@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, AlertCircle, Clock, CheckCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { submitKycForReview } from "@/app/actions/kyc"
+import { submitKycForReviewPublic } from "@/app/actions/kyc"
 
 interface KycStatusProps {
   status: string | undefined
@@ -22,7 +22,8 @@ export function KycStatus({ status, level, className = "", onRefresh }: KycStatu
     setSubmitError(null)
     
     try {
-      const result = await submitKycForReview()
+      
+      const result = await submitKycForReviewPublic()
       
       if (result.success) {
         // Refresh user data to get updated status

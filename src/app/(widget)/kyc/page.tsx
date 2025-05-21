@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 
 export default function KYCPage() {
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { user, loading, refreshUser } = useAuth()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,7 +21,7 @@ export default function KYCPage() {
     countryOfResidence: "",
   })
   const [submitting, setSubmitting] = useState(false)
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error" | "pending">("idle")
   const [errorMessage, setErrorMessage] = useState<string>("")
 
   // List of countries for dropdowns
@@ -71,7 +71,18 @@ export default function KYCPage() {
       const result = await submitKycLevel1(formData)
       
       if (result.success) {
-        setSubmitStatus("success")
+        // First set to pending state while submission for review is processing
+        setSubmitStatus("pending")
+        
+        // Use status from the result (which comes from the automatic refresh)
+        if (result.status === 'PENDING') {
+          // If already in PENDING status, show success
+          setSubmitStatus("success")
+        } else {
+          // Otherwise, refresh the user data to get the latest status
+          await refreshUser()
+          setSubmitStatus("success")
+        }
       } else {
         setErrorMessage(result.message)
         setSubmitStatus("error")
@@ -97,6 +108,29 @@ export default function KYCPage() {
     return null
   }
 
+  // Show pending state
+  if (submitStatus === "pending") {
+    return (
+      <div className="space-y-6">
+        <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-yellow-200 p-6">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center border-2 border-black">
+              <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold">Verification Being Processed...</h1>
+            <p className="font-medium">
+              Your identity verification has been submitted and is now being processed.
+              This may take a moment. Please wait...
+            </p>
+            <div className="w-full mt-4 bg-yellow-300 rounded-full h-2.5">
+              <div className="bg-yellow-600 h-2.5 rounded-full w-1/2 animate-pulse"></div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   // Show success state
   if (submitStatus === "success") {
     return (
@@ -108,8 +142,8 @@ export default function KYCPage() {
             </div>
             <h1 className="text-2xl font-bold">Verification Submitted!</h1>
             <p className="font-medium">
-              Your identity verification request has been submitted successfully. 
-              We will review your information and update you shortly.
+              Your identity verification request has been submitted successfully and sent for review. 
+              We will process your information and update you shortly.
             </p>
             <Button 
               className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)]"

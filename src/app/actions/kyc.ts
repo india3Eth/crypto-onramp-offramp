@@ -5,6 +5,7 @@ import { UserModel } from '@/models/user';
 import { getCurrentUser } from '@/utils/auth';
 import { logger } from '@/services/logger-service';
 import type { KYCSubmission } from '@/types/exchange';
+import { refreshKycStatus } from './kyc-status';
 
 interface KYCResponse {
   submissionId: string;
@@ -17,7 +18,8 @@ interface KYCResponse {
 export async function submitKycLevel1(data: KYCSubmission): Promise<{ 
   success: boolean; 
   message: string; 
-  submissionId?: string 
+  submissionId?: string;
+  status?: string;
 }> {
   try {
     // Get current authenticated user
@@ -55,7 +57,7 @@ export async function submitKycLevel1(data: KYCSubmission): Promise<{
       nationality: data.nationality
     });
     
-    // Make API request
+    // Make API request to submit KYC data
     const response = await fetch(`${apiBaseUrl}${path}`, {
       method,
       headers: {
@@ -91,16 +93,23 @@ export async function submitKycLevel1(data: KYCSubmission): Promise<{
       nationality: data.nationality,
       countryOfResidence: data.countryOfResidence,
       submissionId: responseData.submissionId
-    }, 'PENDING'); 
+    }, 'IN_REVIEW'); // Set to IN_REVIEW which means data is ready but not yet submitted for review
     
     logger.info(`KYC Level 1 submitted successfully for customer: ${user.customerId}`, { 
       submissionId: responseData.submissionId
     });
     
+    // Automatically submit for review
+    await submitKycForReview(user.customerId, responseData.submissionId);
+    
+    // Refresh KYC status to get the latest updates
+    const statusResult = await refreshKycStatus();
+    
     return { 
       success: true, 
-      message: "KYC submitted successfully. Your verification is being processed.", 
-      submissionId: responseData.submissionId 
+      message: "KYC submitted successfully and sent for review. Your verification is being processed.", 
+      submissionId: responseData.submissionId,
+      status: statusResult.kycStatus || 'PENDING'
     };
   } catch (error) {
     logger.error("Error submitting KYC:", error);
@@ -110,9 +119,68 @@ export async function submitKycLevel1(data: KYCSubmission): Promise<{
 }
 
 /**
- * Server action to submit KYC data for review
+ * Internal helper function to submit KYC data for review
  */
-export async function submitKycForReview(): Promise<{ 
+async function submitKycForReview(
+  customerId: string,
+  submissionId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Generate signature for API call
+    const method = "POST";
+    const path = `/v1/external/customers/${customerId}/kyc/${submissionId}/submit`;
+    const signature = generateSignature(method, path);
+    
+    // API key is required
+    const apiKey = process.env.UNLIMIT_API_KEY;
+    if (!apiKey) {
+      throw new Error("API Key is missing");
+    }
+    
+    const apiBaseUrl = process.env.UNLIMIT_API_BASE_URL || "https://api-sandbox.gatefi.com";
+    
+    logger.info(`Submitting KYC data for review for customer: ${customerId}`, { 
+      submissionId: submissionId
+    });
+    
+    // Make API request
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+        "signature": signature,
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      logger.error("Failed to submit KYC for review", errorData);
+      throw new Error(`Failed to submit KYC for review: ${response.statusText}`);
+    }
+    
+    // Parse response
+    const responseData = await response.json();
+    
+    logger.info(`KYC automatically submitted for review successfully for customer: ${customerId}`, { 
+      submissionId: submissionId
+    });
+    
+    return { 
+      success: true, 
+      message: "KYC submitted for review successfully."
+    };
+  } catch (error) {
+    logger.error("Error submitting KYC for review:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, message: errorMessage };
+  }
+}
+
+/**
+ * Public server action to submit KYC data for review
+ */
+export async function submitKycForReviewPublic(): Promise<{ 
   success: boolean; 
   message: string; 
 }> {
@@ -135,54 +203,14 @@ export async function submitKycForReview(): Promise<{
       throw new Error("No KYC submission found. Please complete KYC verification first.");
     }
     
-    // Generate signature for API call
-    const method = "POST";
-    const path = `/v1/external/customers/${user.customerId}/kyc/${user.kycData.submissionId}/submit`;
-    const signature = generateSignature(method, path);
-    
-    // API key is required
-    const apiKey = process.env.UNLIMIT_API_KEY;
-    if (!apiKey) {
-      throw new Error("API Key is missing");
-    }
-    
-    const apiBaseUrl = process.env.UNLIMIT_API_BASE_URL || "https://api-sandbox.gatefi.com";
-    
-    logger.info(`Submitting KYC data for review for customer: ${user.customerId}`, { 
-      email: currentUser.email,
-      submissionId: user.kycData.submissionId
-    });
-    
-    // Make API request
-    const response = await fetch(`${apiBaseUrl}${path}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-        "signature": signature,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      logger.error("Failed to submit KYC for review", errorData);
-      throw new Error(`Failed to submit KYC for review: ${response.statusText}`);
-    }
-    
-    // Parse response
-    const responseData = await response.json();
+    const result = await submitKycForReview(user.customerId, user.kycData.submissionId);
     
     // Update KYC status in the user record to PENDING (as it's now under review)
-    await UserModel.updateKYCStatus(currentUser.email, 'PENDING');
+    if (result.success) {
+      await UserModel.updateKYCStatus(currentUser.email, 'PENDING');
+    }
     
-    logger.info(`KYC submitted for review successfully for customer: ${user.customerId}`, { 
-      submissionId: user.kycData.submissionId
-    });
-    
-    return { 
-      success: true, 
-      message: "KYC submitted for review successfully."
-    };
+    return result;
   } catch (error) {
     logger.error("Error submitting KYC for review:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
