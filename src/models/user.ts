@@ -1,9 +1,18 @@
-
-
 import { ObjectId } from 'mongodb';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
 import { generateOTP } from '@/utils/auth';
 import { emailService } from '@/services/email-service';
+
+export interface SSEEvent {
+  type: string;
+  action?: string;
+  redirectUrl?: string;
+  status?: string;
+  kycLevel?: string[];
+  timestamp: Date;
+  eventId: string;
+  [key: string]: any;
+}
 
 export interface User {
   _id?: ObjectId;
@@ -30,6 +39,7 @@ export interface User {
     kycLevel?: string;
   };
   role?: string;
+  sseEvents?: SSEEvent[]; 
 }
 
 export class UserModel {
@@ -61,7 +71,8 @@ export class UserModel {
         $setOnInsert: { 
           createdAt: now,
           isVerified: false,
-          kycStatus: 'NONE'
+          kycStatus: 'NONE',
+          sseEvents: [] // Initialize empty SSE events array
         }
       },
       { 
@@ -175,7 +186,8 @@ export class UserModel {
       { 
         $set: { 
           customerId,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          sseEvents: [] 
         }
       },
       { returnDocument: 'after' }
@@ -228,5 +240,54 @@ export class UserModel {
       },
       { returnDocument: 'after' }
     );
+  }
+
+  /**
+   * Add SSE event for a user
+   */
+  static async addSSEEvent(
+    customerId: string,
+    event: Omit<SSEEvent, 'timestamp' | 'eventId'>
+  ): Promise<void> {
+    const db = await getDb();
+    
+    const sseEvent: SSEEvent = {
+      ...event,
+      timestamp: new Date(),
+      eventId: `sse_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: ''
+    };
+    
+    await db.collection<User>(COLLECTIONS.USERS).updateOne(
+      { customerId },
+      { 
+        $push: { 
+          sseEvents: sseEvent
+        }
+      }
+    );
+  }
+
+  /**
+   * Get and clear SSE events for a user
+   */
+  static async getAndClearSSEEvents(customerId: string): Promise<SSEEvent[]> {
+    const db = await getDb();
+    
+    const user = await db.collection<User>(COLLECTIONS.USERS).findOne({ customerId });
+    
+    if (!user || !user.sseEvents || user.sseEvents.length === 0) {
+      return [];
+    }
+    
+    const events = user.sseEvents;
+    
+    // Clear the events
+    await db.collection<User>(COLLECTIONS.USERS).updateOne(
+      { customerId },
+      { $unset: { sseEvents: "" } }
+    );
+    
+    return events;
   }
 }

@@ -49,28 +49,62 @@ export function KycWidgetIframe({
     loadWidget()
   }, [kycLevel])
   
-  // Handle iframe messages for when KYC is completed
+  // Set up SSE connection to listen for KYC_REDIRECT events
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Check for KYC completion message from the iframe
-      // Note: You may need to adjust this based on actual messages sent by the KYC provider
-      if (event.data && event.data.kycStatus === "completed") {
-        if (onComplete) {
-          onComplete()
-        } else {
-          // Redirect to profile page by default
-          router.push("/profile")
-        }
-      }
-    }
+    let eventSource: EventSource | null = null;
     
-    window.addEventListener("message", handleMessage)
+    const setupSSE = () => {
+      eventSource = new EventSource('/api/sse');
+      
+      eventSource.onopen = () => {
+        console.log('SSE connection established');
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('SSE event received:', data);
+          
+          // Handle KYC_REDIRECT event
+          if (data.type === 'KYC_REDIRECT' && data.action === 'close_iframe_and_redirect') {
+            console.log('KYC_REDIRECT event received, closing iframe and redirecting...');
+            
+            if (onComplete) {
+              onComplete();
+            } else {
+              // Close iframe and redirect to profile
+              router.push(data.redirectUrl || '/profile');
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing SSE event:', error);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        // Attempt to reconnect after 5 seconds
+        setTimeout(() => {
+          if (eventSource) {
+            eventSource.close();
+            setupSSE();
+          }
+        }, 5000);
+      };
+    };
+    
+    // Only setup SSE if we have a widget URL
+    if (widgetUrl && !isLoading && !error) {
+      setupSSE();
+    }
     
     // Cleanup
     return () => {
-      window.removeEventListener("message", handleMessage)
-    }
-  }, [onComplete, router])
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [widgetUrl, isLoading, error, onComplete, router]);
   
   const handleBack = () => {
     if (onBack) {
