@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,22 +18,22 @@ export default function ProfilePage() {
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const [isRefreshingKyc, setIsRefreshingKyc] = useState(false)
   const [kycRefreshError, setKycRefreshError] = useState<string | null>(null)
-  
+  const hasRefreshedKyc = useRef(false)
 
-const hasRefreshedKyc = useRef(false)
+  // On component mount Refresh the kyc status
   useEffect(() => {
-  if (user && !hasRefreshedKyc.current) {
-    hasRefreshedKyc.current = true
-    refreshKycStatus().then((result) => {
-      if (result.success) {
-       
-        refreshUser()
-      }
-    }).catch((error) => {
-      console.error("Error refreshing KYC status on mount:", error)
-    })
-  }
-}, [user]) 
+    if (user && !hasRefreshedKyc.current) {
+      hasRefreshedKyc.current = true
+      refreshKycStatus().then((result) => {
+        if (result.success) {
+          // Refresh user data to get updated KYC status from database
+          refreshUser()
+        }
+      }).catch((error) => {
+        console.error("Error refreshing KYC status on mount:", error)
+      })
+    }
+  }, [user])
 
   // Handle KYC status refresh
   const handleRefreshKycStatus = async () => {
@@ -152,12 +152,14 @@ const hasRefreshedKyc = useRef(false)
 
         {/* KYC status */}
         <div className="space-y-4 mb-8">
-          {/* KYC status component */}
-          <KycStatus 
-            status={user.kycStatus} 
-            level={user.kycData?.kycLevel}
-            onRefresh={refreshUser}
-          />
+          {/* KYC status component for COMPLETED status */}
+          {user.kycStatus === 'COMPLETED' && (
+            <KycStatus 
+              status={user.kycStatus} 
+              level={user.kycData?.kycLevel}
+              onRefresh={refreshUser}
+            />
+          )}
 
           {/* KYC pending status with refresh button */}
           {user.kycStatus === 'PENDING' && (
@@ -196,8 +198,85 @@ const hasRefreshedKyc = useRef(false)
             </div>
           )}
           
-          {/* KYC failed status */}
-          {(user.kycStatus === 'UPDATE_REQUIRED' || user.kycStatus === 'FAILED') && (
+          {/* KYC UPDATE_REQUIRED status - different handling based on current level */}
+          {user.kycStatus === 'UPDATE_REQUIRED' && (
+            <div className="p-4 bg-yellow-100 rounded-lg border-2 border-yellow-300">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start">
+                  <div className="bg-white p-1 rounded-full mr-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold">Verification Update Required</p>
+                    <p className="text-sm text-yellow-700">
+                      {user.kycData?.statusReason || "Additional verification is required to maintain your current level or upgrade."}
+                    </p>
+                    {user.kycData?.kycLevel && (
+                      <p className="text-sm text-yellow-600 mt-1">
+                        Current Level: <span className="font-medium">{user.kycData.kycLevel}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefreshKycStatus}
+                  disabled={isRefreshingKyc}
+                  className="ml-2 border-yellow-600 text-yellow-600 hover:bg-yellow-50"
+                >
+                  {isRefreshingKyc ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              
+              {/* Show error message if refresh failed */}
+              {kycRefreshError && (
+                <div className="mt-2 p-2 bg-red-100 text-red-600 border border-red-300 rounded-md text-sm">
+                  {kycRefreshError}
+                </div>
+              )}
+              
+              {/* Show appropriate upgrade button based on current level */}
+              <div className="mt-4 space-y-2">
+                {(!user.kycData?.kycLevel || user.kycData.kycLevel === "Level 1") && (
+                  <Button 
+                    onClick={() => router.push('/kyc/level2')}
+                    className="w-full bg-blue-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                  >
+                    <User className="mr-2 h-5 w-5" />
+                    Update to Level 2 Verification
+                  </Button>
+                )}
+                
+                {user.kycData?.kycLevel === "Level 2" && (
+                  <Button 
+                    onClick={() => router.push('/kyc/level3')}
+                    className="w-full bg-blue-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                  >
+                    <User className="mr-2 h-5 w-5" />
+                    Upgrade to Level 3 Verification
+                  </Button>
+                )}
+                
+                {/* Fallback option to retry current level */}
+                <Button 
+                  onClick={() => router.push('/kyc')}
+                  variant="outline"
+                  className="w-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                >
+                  <User className="mr-2 h-5 w-5" />
+                  Retry Current Level Verification
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* KYC FAILED status - separate handling for actual failures */}
+          {user.kycStatus === 'FAILED' && (
             <div className="p-4 bg-red-100 rounded-lg border-2 border-red-300">
               <div className="flex items-start justify-between">
                 <div className="flex items-start">
