@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,19 +20,20 @@ export default function ProfilePage() {
   const [kycRefreshError, setKycRefreshError] = useState<string | null>(null)
   
 
-  // On component mount Refresh the kyc status
-
+const hasRefreshedKyc = useRef(false)
   useEffect(() => {
-  if (user) {
+  if (user && !hasRefreshedKyc.current) {
+    hasRefreshedKyc.current = true
     refreshKycStatus().then((result) => {
       if (result.success) {
+       
         refreshUser()
       }
     }).catch((error) => {
       console.error("Error refreshing KYC status on mount:", error)
     })
   }
-}, [user])
+}, [user]) 
 
   // Handle KYC status refresh
   const handleRefreshKycStatus = async () => {
