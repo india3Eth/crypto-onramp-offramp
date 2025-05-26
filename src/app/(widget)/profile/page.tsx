@@ -32,7 +32,7 @@ export default function ProfilePage() {
       console.error("Error refreshing KYC status on mount:", error)
     })
   }
-}, [user, refreshUser])
+}, [user])
 
   // Handle KYC status refresh
   const handleRefreshKycStatus = async () => {
