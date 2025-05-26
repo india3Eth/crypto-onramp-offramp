@@ -23,10 +23,16 @@ export default function ProfilePage() {
   // On component mount Refresh the kyc status
 
   useEffect(() => {
-    if (user) {
-      refreshKycStatus()
-    }
-  }, [user])
+  if (user) {
+    refreshKycStatus().then((result) => {
+      if (result.success) {
+        refreshUser()
+      }
+    }).catch((error) => {
+      console.error("Error refreshing KYC status on mount:", error)
+    })
+  }
+}, [user, refreshUser])
 
   // Handle KYC status refresh
   const handleRefreshKycStatus = async () => {
