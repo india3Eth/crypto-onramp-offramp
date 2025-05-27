@@ -151,9 +151,18 @@ export default function ProfilePage() {
         </div>
 
         {/* KYC status */}
-        <div className="space-y-4 mb-8">
+          <div className="space-y-4 mb-8">
           {/* KYC status component for COMPLETED status */}
           {user.kycStatus === 'COMPLETED' && (
+            <KycStatus 
+              status={user.kycStatus} 
+              level={user.kycData?.kycLevel}
+              onRefresh={refreshUser}
+            />
+          )}
+
+          
+          {user.kycStatus === 'IN_REVIEW' && (
             <KycStatus 
               status={user.kycStatus} 
               level={user.kycData?.kycLevel}
@@ -262,7 +271,15 @@ export default function ProfilePage() {
                   </Button>
                 )}
                 
-                
+                {/* Fallback option to retry current level */}
+                <Button 
+                  onClick={() => router.push('/kyc')}
+                  variant="outline"
+                  className="w-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+                >
+                  <User className="mr-2 h-5 w-5" />
+                  Retry Current Level Verification
+                </Button>
               </div>
             </div>
           )}
