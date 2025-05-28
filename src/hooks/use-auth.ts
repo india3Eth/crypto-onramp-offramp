@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface UserData {
@@ -30,42 +30,72 @@ export function useAuth({
 }: UseAuthProps = {}) {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const router = useRouter();
+  
+  // Use refs to prevent multiple simultaneous calls
+  const isFetchingRef = useRef(false);
+  const initializationPromiseRef = useRef<Promise<any> | null>(null);
+
+  // Memoized function to fetch user data
+  const fetchUser = useCallback(async (isRefresh = false) => {
+    // Prevent multiple simultaneous calls unless it's a refresh
+    if (isFetchingRef.current && !isRefresh) {
+      console.log('User fetch already in progress, skipping...');
+      return;
+    }
+
+    isFetchingRef.current = true;
+
+    try {
+      if (!isRefresh) {
+        setLoading(true);
+      }
+      
+      const res = await fetch('/api/auth/user');
+      
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+        
+        // Redirect if needed
+        if (redirectTo && redirectIfFound) {
+          router.push(redirectTo);
+        }
+      } else {
+        // User is not authenticated
+        setUser(null);
+        
+        // Redirect if needed
+        if (redirectTo && !redirectIfFound) {
+          router.push(redirectTo);
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      setUser(null);
+    } finally {
+      isFetchingRef.current = false;
+      setLoading(false);
+      setInitialized(true);
+    }
+  }, [redirectIfFound, redirectTo, router]);
 
   useEffect(() => {
-    // Fetch user data
-    const fetchUser = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/auth/user');
-        
-        if (res.ok) {
-          const userData = await res.json();
-          setUser(userData);
-          
-          // Redirect if needed
-          if (redirectTo && redirectIfFound) {
-            router.push(redirectTo);
-          }
-        } else {
-          // User is not authenticated
-          setUser(null);
-          
-          // Redirect if needed
-          if (redirectTo && !redirectIfFound) {
-            router.push(redirectTo);
-          }
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
+    if (!initialized) {
+      // If there's already an initialization in progress, wait for it
+      if (initializationPromiseRef.current) {
+        return;
       }
-    };
 
-    fetchUser();
-  }, [redirectIfFound, redirectTo, router]);
+      console.log('Initializing user authentication...');
+      
+      // Store the promise to prevent multiple initialization calls
+      initializationPromiseRef.current = fetchUser().finally(() => {
+        initializationPromiseRef.current = null;
+      });
+    }
+  }, [fetchUser, initialized]);
 
   // Login function - sends OTP to email
   const login = async (email: string): Promise<{ success: boolean; error?: string }> => {
@@ -109,18 +139,12 @@ export function useAuth({
       }
   
       // Refresh user data after successful verification
-      const userRes = await fetch('/api/auth/user');
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUser(userData);
-        
-        return { 
-          success: true,
-          redirectToOrder: localStorage.getItem('returnToOrderSummary') === 'true'
-        };
-      }
-  
-      return { success: true };
+      await fetchUser(true);
+      
+      return { 
+        success: true,
+        redirectToOrder: localStorage.getItem('returnToOrderSummary') === 'true'
+      };
     } catch (error) {
       console.error('Verification error:', error);
       return { success: false, error: 'An unexpected error occurred' };
@@ -147,26 +171,15 @@ export function useAuth({
     }
   };
 
-  // Refresh user data
-  const refreshUser = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/auth/user');
-      
-      if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Refresh user data function
+  const refreshUser = useCallback(async (): Promise<void> => {
+    await fetchUser(true);
+  }, [fetchUser]);
 
   return {
     user,
     loading,
+    initialized,
     login,
     verify,
     logout,

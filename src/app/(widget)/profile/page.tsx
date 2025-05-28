@@ -1,14 +1,14 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, AlertCircle, Clock, RefreshCw } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/use-auth"
+import { useProfileKyc } from "@/hooks/use-profile-kyc"
 import { CreateCustomerForm } from "@/components/customer/create-customer-form" 
-import { refreshKycStatus } from "@/app/actions/kyc-status"
 import { KycStatus } from "@/components/user/kyc-status"
 
 export default function ProfilePage() {
@@ -16,52 +16,46 @@ export default function ProfilePage() {
   const { user, loading, logout, refreshUser } = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [logoutError, setLogoutError] = useState<string | null>(null)
-  const [isRefreshingKyc, setIsRefreshingKyc] = useState(false)
-  const [kycRefreshError, setKycRefreshError] = useState<string | null>(null)
-  const hasRefreshedKyc = useRef(false)
 
-  // On component mount Refresh the kyc status
+  // Use the profile KYC hook for automatic and manual KYC refresh
+  const {
+    isRefreshing: isRefreshingKyc,
+    error: kycRefreshError,
+    hasInitialized: kycInitialized,
+    lastRefreshTime,
+    refreshKyc: handleRefreshKycStatus,
+    clearError: clearKycError
+  } = useProfileKyc({
+    user,
+    refreshUser,
+    enabled: true // Always enabled for profile page
+  })
+
+  // Combined loading state for initial page load
+  const isPageLoading = loading || (user && user.customerId && !kycInitialized)
+
+  // Debug logging
   useEffect(() => {
-    if (user && !hasRefreshedKyc.current) {
-      hasRefreshedKyc.current = true
-      refreshKycStatus().then((result) => {
-        if (result.success) {
-          // Refresh user data to get updated KYC status from database
-          refreshUser()
-        }
-      }).catch((error) => {
-        console.error("Error refreshing KYC status on mount:", error)
-      })
-    }
-  }, [user])
+    console.log('Profile Page State:', {
+      loading,
+      user: user ? { email: user.email, customerId: user.customerId, kycStatus: user.kycStatus } : null,
+      kycInitialized,
+      isRefreshingKyc,
+      isPageLoading
+    });
+  }, [loading, user, kycInitialized, isRefreshingKyc, isPageLoading]);
 
-  // Handle KYC status refresh
-  const handleRefreshKycStatus = async () => {
-    try {
-      setIsRefreshingKyc(true)
-      setKycRefreshError(null)
-      
-      const result = await refreshKycStatus()
-      
-      if (result.success) {
-        // Refresh user data to get updated KYC status
-        await refreshUser()
-      } else {
-        setKycRefreshError(result.message)
-      }
-    } catch (error) {
-      console.error("Error refreshing KYC status:", error)
-      setKycRefreshError(error instanceof Error ? error.message : "Failed to refresh KYC status")
-    } finally {
-      setIsRefreshingKyc(false)
-    }
-  }
-
-  // If still loading, show loading spinner
-  if (loading) {
+  // Show loading spinner during initial page load
+  if (isPageLoading) {
     return (
       <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text="Loading profile..." />
+        <LoadingSpinner text={
+          loading 
+            ? "Loading profile..." 
+            : !kycInitialized 
+              ? "Updating verification status..." 
+              : "Loading..."
+        } />
       </div>
     )
   }
@@ -151,7 +145,7 @@ export default function ProfilePage() {
         </div>
 
         {/* KYC status */}
-          <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8">
           {/* KYC status component for COMPLETED status */}
           {user.kycStatus === 'COMPLETED' && (
             <KycStatus 
@@ -161,7 +155,6 @@ export default function ProfilePage() {
             />
           )}
 
-          
           {user.kycStatus === 'IN_REVIEW' && (
             <KycStatus 
               status={user.kycStatus} 
@@ -198,10 +191,25 @@ export default function ProfilePage() {
                 </Button>
               </div>
               
+              {/* Show last refresh time if available */}
+              {lastRefreshTime && (
+                <div className="text-xs text-yellow-600 mt-1">
+                  Last updated: {new Date(lastRefreshTime).toLocaleTimeString()}
+                </div>
+              )}
+              
               {/* Show error message if refresh failed */}
               {kycRefreshError && (
                 <div className="mt-2 p-2 bg-red-100 text-red-600 border border-red-300 rounded-md text-sm">
                   {kycRefreshError}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearKycError}
+                    className="ml-2 h-auto p-0 text-red-600 underline"
+                  >
+                    Dismiss
+                  </Button>
                 </div>
               )}
             </div>
@@ -271,15 +279,7 @@ export default function ProfilePage() {
                   </Button>
                 )}
                 
-                {/* Fallback option to retry current level */}
-                <Button 
-                  onClick={() => router.push('/kyc')}
-                  variant="outline"
-                  className="w-full border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                >
-                  <User className="mr-2 h-5 w-5" />
-                  Retry Current Level Verification
-                </Button>
+                
               </div>
             </div>
           )}
@@ -314,16 +314,7 @@ export default function ProfilePage() {
                 </Button>
               </div>
               
-              {/* Show retry buttons based on last attempted level */}
-              <div className="mt-4 space-y-2">
-                <Button 
-                  onClick={() => router.push('/kyc')}
-                  className="w-full bg-red-500 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                >
-                  <User className="mr-2 h-5 w-5" />
-                  Retry Level 1 Verification
-                </Button>
-              </div>
+              
             </div>
           )}
           
