@@ -8,8 +8,8 @@ import type { QuoteRequest } from "@/types/exchange"
 import { createQuote } from "@/app/actions/quote"
 
 // Custom hooks for API data
-import { useCryptoOptions } from "@/hooks/use-crypto-options"
-import { usePaymentMethods } from "@/hooks/use-payment-methods"
+import { useCryptoOptions } from "@/hooks/exchange/use-crypto-options"
+import { usePaymentMethods } from "@/hooks/exchange/use-payment-methods"
 
 // Components
 import { QuoteForm } from "@/components/exchange/quote-form"

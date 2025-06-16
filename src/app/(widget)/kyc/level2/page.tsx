@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/auth/use-auth"
 import { KycWidgetIframe } from "@/components/kyc/kyc-widget-iframe"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Card, CardContent } from "@/components/ui/card"

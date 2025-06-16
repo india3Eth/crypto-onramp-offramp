@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { KycLimitCheck } from "@/components/kyc/kyc-limit-check"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/auth/use-auth"
 import { checkKycLimits } from "@/app/actions/kyc-limits"
 import type { KycLimitCheckResult } from "@/types/exchange"
 
