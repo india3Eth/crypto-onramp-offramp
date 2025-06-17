@@ -2,6 +2,7 @@
 
 import type { QuoteRequest } from "@/types/exchange"
 import { useCountdownTimer } from "@/hooks/common/use-countdown-timer"
+import { QUOTE_REFRESH_COUNTDOWN_SECONDS } from "@/utils/common/constants"
 import { usePaymentMethodFilter } from "@/hooks/exchange/use-payment-method-filter"
 import { useQuoteRefresh } from "@/hooks/exchange/use-quote-refresh"
 import { CurrencySelect } from "@/components/exchange/currency-select"
@@ -40,7 +41,7 @@ export function QuoteForm({
 }: QuoteFormProps) {
   // Use custom hooks for state management
   const countdown = useCountdownTimer(
-    15, // Initial time in seconds
+    QUOTE_REFRESH_COUNTDOWN_SECONDS,
     onCreateQuote, // Callback when timer reaches zero
     [quote] // Dependencies that reset the timer when changed
   )

@@ -2,6 +2,7 @@ import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { UserModel } from '@/models/user';
+import { JWT_EXPIRY_TIME, COOKIE_MAX_AGE_SECONDS } from '@/utils/common/constants';
 
 // Secret key for JWT
 const JWT_SECRET = new TextEncoder().encode(
@@ -29,7 +30,7 @@ export async function createToken(payload: AuthUser): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('1d') // 1 day expiry
+    .setExpirationTime(JWT_EXPIRY_TIME)
     .sign(JWT_SECRET);
 }
 
@@ -69,7 +70,7 @@ export function setAuthCookie(response: NextResponse, token: string): NextRespon
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24, // 1 day
+    maxAge: COOKIE_MAX_AGE_SECONDS,
     path: '/',
   });
   

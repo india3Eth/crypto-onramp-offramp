@@ -13,14 +13,15 @@ import { useQuoteManager } from "@/hooks/exchange/use-quote-manager"
 import { OptionsLoader } from "@/components/exchange/options-loader"
 import { QuoteContainer } from "@/components/exchange/quote-container"
 import { ConfigRefresher } from "@/components/admin/config-refresher"
+import { CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 export default function HomePage() {
   // Start with basic state for mode since we need it for API calls
   const [mode, setMode] = useState<"buy" | "sell">("buy")
   
   // Use custom hooks for API data with current mode
-  const { cryptoOptions, isLoading: isLoadingCrypto, error: cryptoError } = useCryptoOptions(mode === "buy" ? "buy" : "sell")
-  const { paymentMethods, fiatOptions, isLoading: isLoadingPayments, error: paymentsError } = usePaymentMethods(mode === "buy" ? "buy" : "sell")
+  const { cryptoOptions, isLoading: isLoadingCrypto, error: cryptoError } = useCryptoOptions(mode)
+  const { paymentMethods, fiatOptions, isLoading: isLoadingPayments, error: paymentsError } = usePaymentMethods(mode)
   
   // Use form data manager with actual API data
   const {
@@ -42,8 +43,8 @@ export default function HomePage() {
     formSwapCurrencies()
   }
   
-  const isLoadingOptions = isLoadingCrypto || isLoadingPayments
-  const optionsError = cryptoError || paymentsError
+  const isLoadingOptions = isLoadingCrypto || isLoadingPayments,
+        optionsError = cryptoError || paymentsError
   
   // Use quote manager for quote-related logic
   const {
@@ -63,7 +64,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-4">
+      <Card className={`${CARD_BRUTALIST_STYLE} p-4`}>
         <div className="space-y-6">
           <OptionsLoader 
             isLoading={isLoadingOptions} 

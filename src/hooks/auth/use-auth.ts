@@ -41,7 +41,6 @@ export function useAuth({
   const fetchUser = useCallback(async (isRefresh = false) => {
     // Prevent multiple simultaneous calls unless it's a refresh
     if (isFetchingRef.current && !isRefresh) {
-      console.log('User fetch already in progress, skipping...');
       return;
     }
 
@@ -88,7 +87,6 @@ export function useAuth({
         return;
       }
 
-      console.log('Initializing user authentication...');
       
       // Store the promise to prevent multiple initialization calls
       initializationPromiseRef.current = fetchUser().finally(() => {

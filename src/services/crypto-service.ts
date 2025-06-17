@@ -23,6 +23,37 @@ export interface PaymentLimit {
 
 export class CryptoService {
   /**
+   * Helper method to filter payment limits
+   */
+  private static filterPaymentLimits(
+    assets: CryptoAsset[],
+    methodType: 'onramp' | 'offramp',
+    paymentMethod?: string,
+    currency?: string
+  ): CryptoAsset[] {
+    return assets.map(asset => {
+      // Clone the asset
+      const filtered = { ...asset };
+      
+      // Filter payment limits based on criteria
+      filtered.paymentLimits = asset.paymentLimits.filter(limit => {
+        // Only include specified method type
+        if (limit.methodType !== methodType) return false;
+        
+        // Filter by payment method if specified
+        if (paymentMethod && limit.id !== paymentMethod) return false;
+        
+        // Filter by currency if specified
+        if (currency && limit.currency !== currency) return false;
+        
+        return true;
+      });
+      
+      return filtered;
+    }).filter(asset => asset.paymentLimits.length > 0); // Remove assets with no matching payment limits
+  }
+
+  /**
    * Get crypto assets that support onramp
    * @param paymentMethod Optional payment method to filter by
    * @param currency Optional fiat currency to filter by
@@ -85,26 +116,7 @@ export class CryptoService {
     
     // If payment method or currency filter is specified, filter the payment limits
     if (paymentMethod || currency) {
-      return assets.map(asset => {
-        // Clone the asset
-        const filtered = { ...asset };
-        
-        // Filter payment limits based on criteria
-        filtered.paymentLimits = asset.paymentLimits.filter(limit => {
-          // Only include offramp methods
-          if (limit.methodType !== 'offramp') return false;
-          
-          // Filter by payment method if specified
-          if (paymentMethod && limit.id !== paymentMethod) return false;
-          
-          // Filter by currency if specified
-          if (currency && limit.currency !== currency) return false;
-          
-          return true;
-        });
-        
-        return filtered;
-      }).filter(asset => asset.paymentLimits.length > 0); // Remove assets with no matching payment limits
+      return this.filterPaymentLimits(assets, 'offramp', paymentMethod, currency);
     }
     
     return assets;
@@ -138,9 +150,5 @@ export class CryptoService {
     return paymentMethods.map(method => method.id);
   }
 }
-
-// Export singleton instance
-export const cryptoService = new CryptoService();
-
-// Export for testing or custom instances
+// This service provides methods to interact with crypto assets and payment methods
 export default CryptoService;

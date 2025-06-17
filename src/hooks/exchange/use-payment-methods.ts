@@ -1,5 +1,6 @@
 // src/hooks/use-payment-methods.ts
 import { useState, useEffect } from "react";
+import { formatErrorMessage } from "@/utils/common/error-handling";
 
 // Define interfaces for API responses
 interface PaymentMethodOption {
@@ -30,10 +31,7 @@ export function usePaymentMethods(mode: "buy" | "sell") {
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
-        // Only set loading if we don't already have payment methods
-        if (paymentMethods.length === 0) {
-          setIsLoading(true);
-        }
+        setIsLoading(true);
         setError(null);
         
         const response = await fetch(`/api/crypto/payment-methods?type=${mode === "buy" ? "onramp" : "offramp"}`);
@@ -66,14 +64,14 @@ export function usePaymentMethods(mode: "buy" | "sell") {
         setFiatOptions(Array.from(uniqueFiatCurrencies).sort());
       } catch (err) {
         console.error("Error fetching payment methods:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(formatErrorMessage(err));
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchPaymentMethods();
-  }, [mode, paymentMethods.length]);
+  }, [mode]);
   
   return { paymentMethods, fiatOptions, isLoading, error };
 }

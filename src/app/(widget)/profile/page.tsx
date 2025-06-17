@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/auth/use-auth"
 import { useProfileKyc } from "@/hooks/profile/use-profile-kyc"
 import { CreateCustomerForm } from "@/components/customer/create-customer-form" 
 import { KycStatus } from "@/components/user/kyc-status"
+import { CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -34,16 +35,6 @@ export default function ProfilePage() {
   // Combined loading state for initial page load
   const isPageLoading = loading || (user && user.customerId && !kycInitialized)
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Profile Page State:', {
-      loading,
-      user: user ? { email: user.email, customerId: user.customerId, kycStatus: user.kycStatus } : null,
-      kycInitialized,
-      isRefreshingKyc,
-      isPageLoading
-    });
-  }, [loading, user, kycInitialized, isRefreshingKyc, isPageLoading]);
 
   // Show loading spinner during initial page load
   if (isPageLoading) {
@@ -63,7 +54,7 @@ export default function ProfilePage() {
   // If not logged in, show login prompt
   if (!user) {
     return (
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
+      <Card className={`${CARD_BRUTALIST_STYLE} p-6`}>
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center border-2 border-black">
             <User className="h-8 w-8 text-blue-600" />
@@ -106,7 +97,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
+      <Card className={`${CARD_BRUTALIST_STYLE} p-6`}>
         <div className="flex flex-col items-center mb-6">
           <div className="w-16 h-16 bg-purple-200 rounded-full flex items-center justify-center border-2 border-black mb-4">
             <User className="h-8 w-8 text-purple-600" />
@@ -146,16 +137,8 @@ export default function ProfilePage() {
 
         {/* KYC status */}
         <div className="space-y-4 mb-8">
-          {/* KYC status component for COMPLETED status */}
-          {user.kycStatus === 'COMPLETED' && (
-            <KycStatus 
-              status={user.kycStatus} 
-              level={user.kycData?.kycLevel}
-              onRefresh={refreshUser}
-            />
-          )}
-
-          {user.kycStatus === 'IN_REVIEW' && (
+          {/* KYC status component for COMPLETED and IN_REVIEW status */}
+          {(user.kycStatus === 'COMPLETED' || user.kycStatus === 'IN_REVIEW') && (
             <KycStatus 
               status={user.kycStatus} 
               level={user.kycData?.kycLevel}

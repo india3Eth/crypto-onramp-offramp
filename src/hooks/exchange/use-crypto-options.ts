@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatErrorMessage } from "@/utils/common/error-handling";
 
 interface CryptoOption {
   id: string;
@@ -35,7 +36,7 @@ export function useCryptoOptions(mode: "buy" | "sell") {
         setCryptoOptions(data.cryptos || []);
       } catch (err) {
         console.error("Error fetching crypto options:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(formatErrorMessage(err));
       } finally {
         setIsLoading(false);
       }

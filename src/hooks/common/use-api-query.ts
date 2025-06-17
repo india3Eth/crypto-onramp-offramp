@@ -79,7 +79,7 @@ export function useApiQuery<T = any>({
   
   useEffect(() => {
     fetchData()
-  }, [fetchData, ...dependencies])
+  }, [fetchData, ...(dependencies || [])])
   
   return {
     data,

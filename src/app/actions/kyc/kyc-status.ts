@@ -131,7 +131,7 @@ export async function refreshKycStatus(
     
     
     // Map API status to our internal status
-    let kycStatus: string;
+    let kycStatus: 'NONE' | 'IN_REVIEW' | 'PENDING' | 'COMPLETED' | 'UPDATE_REQUIRED' | 'FAILED';
     switch (statusData.status) {
       case "CREATED":
       case "SUBMITTED":
@@ -147,7 +147,7 @@ export async function refreshKycStatus(
         kycStatus = "UPDATE_REQUIRED";
         break;
       default:
-        kycStatus = statusData.status;
+        kycStatus = "PENDING"; 
     }
     
     // Extract the KYC level from the response
@@ -171,7 +171,7 @@ export async function refreshKycStatus(
     // Update user's KYC status and level in the database
     await UserModel.updateKYCStatus(
       currentUser.email, 
-      kycStatus as any,
+      kycStatus,
       null, // No status reason in this endpoint
       kycLevel  // Add the KYC level
     );
