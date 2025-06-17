@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { updateCryptoStatus } from "@/app/actions/admin"
+import { updateCryptoStatus } from "@/app/actions/admin/admin"
 
 interface CryptoAsset {
   id: string

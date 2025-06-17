@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authMiddleware } from '@/utils/auth'
+import { authMiddleware } from '@/utils/auth/auth'
 import { adminMiddleware } from '@/middleware/admin-middleware'
 import { logger } from '@/services/logger-service'
 

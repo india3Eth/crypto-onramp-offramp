@@ -7,7 +7,7 @@ import { CryptoManagement } from "@/components/admin/crypto-management"
 import { PaymentMethodsManagement } from "@/components/admin/payment-methods-management"
 import { RefreshCw, AlertCircle, ArrowUpRight, Wallet, CreditCard, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { fetchAndStoreConfigs } from "@/app/actions/config"
+import { fetchAndStoreConfigs } from "@/app/actions/config/config"
 
 // Stats card component
 interface StatsCardProps {

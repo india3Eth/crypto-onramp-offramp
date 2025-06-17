@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, AlertCircle, Clock, CheckCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { submitKycForReviewPublic } from "@/app/actions/kyc"
+import { submitKycForReviewPublic } from "@/app/actions/kyc/kyc"
 
 interface KycStatusProps {
   status: string | undefined

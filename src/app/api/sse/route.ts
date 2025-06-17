@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/utils/auth';
+import { getCurrentUser } from '@/utils/auth/auth';
 import { UserModel } from '@/models/user';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
 import { logger } from '@/services/logger-service';

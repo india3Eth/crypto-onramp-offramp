@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
-import { generateOTP } from '@/utils/auth';
+import { generateOTP } from '@/utils/auth/auth';
 import { emailService } from '@/services/email-service';
 
 export interface SSEEvent {

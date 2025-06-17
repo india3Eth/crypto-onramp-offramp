@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Wallet, AlertCircle, ArrowRight, CheckCircle, ExternalLink, Copy } from "lucide-react"
-import { validateWalletAddress } from "@/utils/wallet-validator"
+import { validateWalletAddress } from "@/utils/crypto/wallet-validator"
 
 interface WalletAddressFormProps {
   onSubmit: (walletAddress: string, isValid: boolean) => void

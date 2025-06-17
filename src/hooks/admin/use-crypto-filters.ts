@@ -1,14 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-
-interface CryptoAsset {
-  id: string
-  onRampSupported: boolean
-  offRampSupported: boolean
-  network?: string
-  chain?: string
-}
+import { CryptoAsset } from "@/types/admin/crypto"
 
 export function useCryptoFilters(cryptoAssets: CryptoAsset[]) {
   const [searchQuery, setSearchQuery] = useState("")

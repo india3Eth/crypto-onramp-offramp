@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowUpRight, ArrowLeft } from "lucide-react"
-import type { KycLevelLimit } from "@/types/exchange"
+import type { KycLevelLimit } from "@/types/kyc"
 
 interface KycLimitCheckProps {
   currentAmount: number

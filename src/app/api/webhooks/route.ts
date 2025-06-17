@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySignature } from '@/utils/signature';
+import { verifySignature } from '@/utils/crypto/signature';
 import { UserModel } from '@/models/user';
 import { logger } from '@/services/logger-service';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';

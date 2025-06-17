@@ -11,14 +11,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ArrowUpDown } from "lucide-react"
-
-interface CryptoAsset {
-  id: string
-  onRampSupported: boolean
-  offRampSupported: boolean
-  network?: string
-  chain?: string
-}
+import { CryptoAsset } from "@/types/admin/crypto"
 
 interface CryptoAssetTableProps {
   assets: CryptoAsset[]

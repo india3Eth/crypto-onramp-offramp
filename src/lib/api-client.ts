@@ -1,4 +1,4 @@
-import { generateSignature } from '@/utils/signature';
+import { generateSignature } from '@/utils/crypto/signature';
 
 interface ApiClientOptions {
   baseUrl?: string;

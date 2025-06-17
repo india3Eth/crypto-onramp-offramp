@@ -1,11 +1,11 @@
 "use server"
 
-import { getCurrentUser } from '@/utils/auth';
+import { getCurrentUser } from '@/utils/auth/auth';
 import { UserModel } from '@/models/user';
 import { logger } from '@/services/logger-service';
 import { orderService } from '@/services/order-service';
 import type { OnrampOrderRequest, OfframpOrderRequest } from '@/services/order-service';
-import { generateRandomDeviceId } from '@/utils/device-id';
+import { generateRandomDeviceId } from '@/utils/common/device-id';
 
 interface CreateOrderResult {
   success: boolean;

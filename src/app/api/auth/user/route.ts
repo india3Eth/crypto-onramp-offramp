@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/utils/auth';
+import { getCurrentUser } from '@/utils/auth/auth';
 import { UserModel } from '@/models/user';
 
 export async function GET(request: NextRequest) {

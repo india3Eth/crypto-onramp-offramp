@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { refreshKycStatus } from '@/app/actions/kyc-status';
+import { refreshKycStatus } from '@/app/actions/kyc/kyc-status';
 
 interface UseProfileKycProps {
   user: any;

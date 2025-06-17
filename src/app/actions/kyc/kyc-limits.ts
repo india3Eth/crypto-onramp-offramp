@@ -1,10 +1,10 @@
 "use server"
 
-import { getCurrentUser } from '@/utils/auth';
+import { getCurrentUser } from '@/utils/auth/auth';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
-import { refreshKycStatus } from '@/app/actions/kyc-status';
+import { refreshKycStatus } from '@/app/actions/kyc/kyc-status';
 import { logger } from '@/services/logger-service';
-import type { KycLimitCheckResult } from '@/types/exchange';
+import type { KycLimitCheckResult } from '@/types/kyc';
 
 /**
  * Checks if a transaction exceeds the user's KYC limits

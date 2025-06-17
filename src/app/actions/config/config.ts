@@ -1,7 +1,7 @@
 "use server"
 
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
-import { generateSignature } from '@/utils/signature';
+import { generateSignature } from '@/utils/crypto/signature';
 import { logger } from '@/services/logger-service';
 
 // Define the structure of the config response

@@ -3,14 +3,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Filter, Download } from "lucide-react"
-
-interface CryptoAsset {
-  id: string
-  onRampSupported: boolean
-  offRampSupported: boolean
-  network?: string
-  chain?: string
-}
+import { CryptoAsset } from "@/types/admin/crypto"
 
 interface CryptoControlsBarProps {
   searchQuery: string

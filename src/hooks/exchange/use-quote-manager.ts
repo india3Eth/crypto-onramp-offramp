@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import type { QuoteRequest } from "@/types/exchange"
-import { createQuote } from "@/app/actions/quote"
+import { createQuote } from "@/app/actions/exchange/quote"
 
 interface UseQuoteManagerProps {
   formData: QuoteRequest

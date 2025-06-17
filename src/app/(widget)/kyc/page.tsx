@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Shield, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
-import { submitKycLevel1 } from "@/app/actions/kyc"
+import { submitKycLevel1 } from "@/app/actions/kyc/kyc"
 import { useAuth } from "@/hooks/auth/use-auth"
 import { useRouter } from "next/navigation"
 

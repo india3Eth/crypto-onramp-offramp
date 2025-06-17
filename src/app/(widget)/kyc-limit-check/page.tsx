@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { KycLimitCheck } from "@/components/kyc/kyc-limit-check"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/auth/use-auth"
-import { checkKycLimits } from "@/app/actions/kyc-limits"
-import type { KycLimitCheckResult } from "@/types/exchange"
+import { checkKycLimits } from "@/app/actions/kyc/kyc-limits"
+import type { KycLimitCheckResult } from "@/types/kyc"
 
 export default function KycLimitCheckPage() {
   const router = useRouter()

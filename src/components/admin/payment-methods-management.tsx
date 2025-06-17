@@ -24,7 +24,7 @@ import {
   Globe,
   CreditCard
 } from "lucide-react"
-import { updatePaymentMethodStatus } from "@/app/actions/admin"
+import { updatePaymentMethodStatus } from "@/app/actions/admin/admin"
 import { 
   Card, 
   CardContent,

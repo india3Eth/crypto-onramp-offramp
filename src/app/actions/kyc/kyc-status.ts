@@ -1,8 +1,8 @@
 "use server"
 
-import { generateSignature } from '@/utils/signature';
+import { generateSignature } from '@/utils/crypto/signature';
 import { UserModel } from '@/models/user';
-import { getCurrentUser } from '@/utils/auth';
+import { getCurrentUser } from '@/utils/auth/auth';
 import { logger } from '@/services/logger-service';
 
 interface KYCStatusResponse {

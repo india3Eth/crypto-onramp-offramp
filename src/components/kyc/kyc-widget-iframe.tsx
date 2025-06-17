@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { getKycWidgetUrl } from "@/app/actions/kyc-widget"
+import { getKycWidgetUrl } from "@/app/actions/kyc/kyc-widget"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"

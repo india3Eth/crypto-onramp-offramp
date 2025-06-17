@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createCustomer } from "@/app/actions/customer"
+import { createCustomer } from "@/app/actions/auth/customer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

@@ -8,8 +8,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/auth/use-auth"
 import { ArrowLeft, CheckCircle, ArrowRight, Clock, Copy, AlertCircle, RefreshCw } from "lucide-react"
 import { FeeDisplay } from "@/components/exchange/fee-display"
-import { createOnrampOrder, createOfframpOrder } from "@/app/actions/order"
-import { createQuote } from "@/app/actions/quote"
+import { createOnrampOrder, createOfframpOrder } from "@/app/actions/exchange/order"
+import { createQuote } from "@/app/actions/exchange/quote"
 import { CheckoutIframe } from "@/components/order/checkout-iframe"
 
 export default function OrderSummaryPage() {

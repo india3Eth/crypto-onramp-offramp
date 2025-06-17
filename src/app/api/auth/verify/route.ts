@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserModel } from '@/models/user';
-import { createToken, setAuthCookie } from '@/utils/auth';
+import { createToken, setAuthCookie } from '@/utils/auth/auth';
 
 export async function POST(request: NextRequest) {
   try {

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, Download, RefreshCw } from "lucide-react"
-import { fetchAndStoreConfigs } from "@/app/actions/config"
+import { fetchAndStoreConfigs } from "@/app/actions/config/config"
 
 interface ConfigRefresherProps {
   className?: string

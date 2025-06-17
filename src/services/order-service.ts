@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type { Quote, OnrampTransaction, OfframpTransaction } from '@/types/exchange';
-import { getDeviceId } from '@/utils/device-id';
+import { getDeviceId } from '@/utils/common/device-id';
 
 // API paths
 const API_PATHS = {
