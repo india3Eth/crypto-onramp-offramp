@@ -11,6 +11,7 @@ import { FeeDisplay } from "@/components/exchange/fee-display"
 import { createOnrampOrder, createOfframpOrder } from "@/app/actions/exchange/order"
 import { createQuote } from "@/app/actions/exchange/quote"
 import { CheckoutIframe } from "@/components/order/checkout-iframe"
+import { CARD_BRUTALIST_STYLE, QUOTE_EXPIRY_MS } from "@/utils/common/constants"
 
 export default function OrderSummaryPage() {
   const router = useRouter()
@@ -28,7 +29,6 @@ export default function OrderSummaryPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('cancel')) {
-      console.log("Cancel parameter detected in URL, redirecting to cancel page");
       router.replace('/order/cancel');
       return;
     }
@@ -43,8 +43,8 @@ export default function OrderSummaryPage() {
       
       // Set expiry time if available
       if (parsedQuote.lastUpdated) {
-        // Quote expires in 10 seconds from when it was created
-        const expiryTime = parsedQuote.lastUpdated + 10000
+        // Quote expires in configured time from when it was created
+        const expiryTime = parsedQuote.lastUpdated + QUOTE_EXPIRY_MS
         setQuoteExpiryTime(expiryTime)
       }
     } else {
@@ -149,8 +149,8 @@ export default function OrderSummaryPage() {
       setOrder(updatedOrder)
       localStorage.setItem('currentQuote', JSON.stringify(updatedOrder))
       
-      // Set new expiry time (10 seconds from now)
-      const newExpiryTime = Date.now() + 10000
+      // Set new expiry time
+      const newExpiryTime = Date.now() + QUOTE_EXPIRY_MS
       setQuoteExpiryTime(newExpiryTime)
       
     } catch (error) {
@@ -233,8 +233,6 @@ export default function OrderSummaryPage() {
   
   // Handle completion of checkout
   const handleCheckoutComplete = () => {
-    console.log("Checkout complete, redirecting to success page")
-    
     // Clear quotes and checkout session from localStorage
     localStorage.removeItem('currentQuote')
     localStorage.removeItem('checkoutSession')
@@ -246,7 +244,6 @@ export default function OrderSummaryPage() {
   
   // Handle back from checkout
   const handleBackFromCheckout = () => {
-    console.log("User went back from checkout or checkout was cancelled")
     // Remove the checkout session from localStorage
     localStorage.removeItem('checkoutSession')
     // Clear the checkout URL to go back to the order summary
@@ -287,7 +284,7 @@ export default function OrderSummaryPage() {
         </Button>
       </div>
       
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white">
+      <Card className={CARD_BRUTALIST_STYLE}>
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">Order Summary</CardTitle>
         </CardHeader>

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
+import { AlertCircle, ArrowLeft } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useRouter } from "next/navigation"
+import { IFRAME_TIMEOUT_MS, IFRAME_SUCCESS_DELAY_MS, CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 interface CheckoutIframeProps {
   checkoutUrl: string
@@ -20,44 +21,54 @@ export function CheckoutIframe({
 }: CheckoutIframeProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [, setError] = useState<string | null>(null)
+  const [hasTimedOut, setHasTimedOut] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const hasCompletedRef = useRef(false) // Prevent multiple completion calls
+  
+  // Consolidated completion handler
+  const handleCompletion = (isSuccess: boolean) => {
+    if (hasCompletedRef.current) return; // Prevent multiple calls
+    hasCompletedRef.current = true;
+    
+    // Clear timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    if (isSuccess) {
+      if (onComplete) {
+        onComplete();
+      } else {
+        router.push('/order/success');
+      }
+    } else {
+      router.push('/order/cancel');
+    }
+  };
   
   // Handle iframe navigation to detect URL changes
   useEffect(() => {
-    // Observe iframe URL changes by hooking into the load event
     const handleIframeNavigation = () => {
-      if (!iframeRef.current) return;
+      if (!iframeRef.current || hasCompletedRef.current) return;
       
       try {
-        // When iframe location changes, check if it contains "success" or "cancel" in the URL
         const iframeLocation = iframeRef.current.contentWindow?.location.href;
         
         if (iframeLocation) {
-          console.log("Iframe navigation detected:", iframeLocation);
-          
           if (iframeLocation.includes('/success') || 
               iframeLocation.includes('/order/success') ||
               iframeLocation.includes('result.html?OrderMd=')) {
-            console.log("Success URL detected in iframe:", iframeLocation);
-            // Detected success page, trigger completion
-            if (onComplete) {
-              onComplete();
-            } else {
-              // Default redirect to success page
-              router.push('/order/success');
-            }
+            handleCompletion(true);
           } else if (iframeLocation.includes('/cancel') || 
                     iframeLocation.includes('/order/cancel')) {
-            console.log("Cancel URL detected in iframe:", iframeLocation);
-            // Detected cancel page, redirect directly to cancel page
-            router.push('/order/cancel');
+            handleCompletion(false);
           }
         }
       } catch (e) {
         // Security policies may prevent accessing iframe location
         // This is expected for cross-origin iframes
-        console.log("Cannot access iframe location due to security restrictions");
       }
     };
 
@@ -68,49 +79,62 @@ export function CheckoutIframe({
         iframe.removeEventListener('load', handleIframeNavigation);
       };
     }
-  }, [onComplete, onBack, router]);
+  }, []);
+  
+  // Add iframe timeout handling
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      setHasTimedOut(true);
+      setError("Payment page timed out. Please try again.");
+      setIsLoading(false);
+    }, IFRAME_TIMEOUT_MS);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [checkoutUrl]);
   
   // Handle iframe messages for when payment is completed or canceled
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log("Received message from iframe:", event.data);
+      if (hasCompletedRef.current) return; // Prevent processing after completion
       
       // Check for completion message
-      if (event.data && (
-          event.data.status === "success" || 
-          event.data.status === "completed" ||
-          event.data.paymentStatus === "success" ||
-          // Check for URLs containing success indicators
-          (typeof event.data === 'string' && (
-            event.data.includes('/success') || 
-            event.data.includes('result.html?OrderMd=')
-          ))
-      )) {
-        console.log("Success event detected from iframe");
-        if (onComplete) {
-          onComplete();
-        } else {
-          // Default redirect to success page
-          router.push('/order/success');
-        }
-      }
+      const isSuccess = event.data && (
+        event.data.status === "success" || 
+        event.data.status === "completed" ||
+        event.data.paymentStatus === "success" ||
+        // Check for URLs containing success indicators
+        (typeof event.data === 'string' && (
+          event.data.includes('/success') || 
+          event.data.includes('result.html?OrderMd=')
+        ))
+      );
       
       // Check for cancelation or failure
-      if (event.data && (
-          event.data.status === "cancelled" || 
-          event.data.status === "canceled" ||
-          event.data.status === "failed" ||
-          event.data.paymentStatus === "cancelled" ||
-          event.data.paymentStatus === "failed" ||
-          // Check for URLs containing cancel indicators
-          (typeof event.data === 'string' && (
-            event.data.includes('/cancel') || 
-            event.data.includes('/failed')
-          ))
-      )) {
-        console.log("Cancel event detected from iframe");
-        // Direct redirect to cancel page instead of using onBack
-        router.push('/order/cancel');
+      const isCancel = event.data && (
+        event.data.status === "cancelled" || 
+        event.data.status === "canceled" ||
+        event.data.status === "failed" ||
+        event.data.paymentStatus === "cancelled" ||
+        event.data.paymentStatus === "failed" ||
+        // Check for URLs containing cancel indicators
+        (typeof event.data === 'string' && (
+          event.data.includes('/cancel') || 
+          event.data.includes('/failed')
+        ))
+      );
+      
+      if (isSuccess) {
+        handleCompletion(true);
+      } else if (isCancel) {
+        handleCompletion(false);
       }
     };
     
@@ -120,7 +144,7 @@ export function CheckoutIframe({
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  }, [onComplete, onBack, router]);
+  }, []);
   
   const handleBack = () => {
     if (onBack) {
@@ -132,37 +156,29 @@ export function CheckoutIframe({
     setIsLoading(false);
     
     // After iframe loads, check if we can detect a success or cancel page
-    if (iframeRef.current) {
+    if (iframeRef.current && !hasCompletedRef.current) {
       try {
         const iframeWindow = iframeRef.current.contentWindow;
         const iframeLocation = iframeWindow?.location.href;
-        
-        console.log("Iframe loaded:", iframeLocation);
         
         if (iframeLocation) {
           // Try to check if it's a success page
           if (iframeLocation.includes('/success') || 
               iframeLocation.includes('result.html?OrderMd=')) {
-            console.log("Success URL detected on iframe load:", iframeLocation);
-            // Redirect to success page after a short delay
             setTimeout(() => {
-              if (onComplete) onComplete();
-              else router.push('/order/success');
-            }, 500);
+              handleCompletion(true);
+            }, IFRAME_SUCCESS_DELAY_MS);
           }
           
           // Try to check if it's a cancel page
           else if (iframeLocation.includes('/cancel')) {
-            console.log("Cancel URL detected on iframe load:", iframeLocation);
-            // Redirect directly to cancel page
             setTimeout(() => {
-              router.push('/order/cancel');
-            }, 500);
+              handleCompletion(false);
+            }, IFRAME_SUCCESS_DELAY_MS);
           }
         }
       } catch (e) {
         // Expected error for cross-origin iframes
-        console.log("Cannot access iframe location due to security restrictions");
       }
     }
   };
@@ -171,21 +187,25 @@ export function CheckoutIframe({
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('cancel')) {
-      console.log("Cancel parameter detected in URL");
       router.push('/order/cancel');
     }
   }, [router]);
   
-  if (!checkoutUrl) {
+  if (!checkoutUrl || hasTimedOut) {
     return (
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6">
+      <Card className={`${CARD_BRUTALIST_STYLE} p-6`}>
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center border-2 border-black">
             <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-center">Checkout URL Missing</h1>
+          <h1 className="text-2xl font-bold text-center">
+            {hasTimedOut ? "Payment Timeout" : "Checkout URL Missing"}
+          </h1>
           <p className="text-center text-gray-600">
-            No checkout URL was provided to process your payment.
+            {hasTimedOut 
+              ? "The payment page took too long to load. Please try again." 
+              : "No checkout URL was provided to process your payment."
+            }
           </p>
           <Button 
             onClick={handleBack}
@@ -213,7 +233,7 @@ export function CheckoutIframe({
         </Button>
       </div>
       
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-0 overflow-hidden">
+      <Card className={`${CARD_BRUTALIST_STYLE} p-0 overflow-hidden`}>
         {isLoading && (
           <div className="absolute inset-0 flex justify-center items-center z-10 bg-white/80">
             <LoadingSpinner text="Loading payment page..." />

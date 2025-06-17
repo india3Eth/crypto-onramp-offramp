@@ -3,6 +3,8 @@ import { verifySignature } from '@/utils/crypto/signature';
 import { UserModel } from '@/models/user';
 import { logger } from '@/services/logger-service';
 import { getDb, COLLECTIONS } from '@/lib/mongodb';
+import { TransactionService } from '@/services/transaction-service';
+import { OnrampWebhookPayload, TransactionSSEEvent } from '@/types/exchange/webhook';
 
 // Generic webhook payload interface
 interface WebhookPayload {
@@ -17,8 +19,8 @@ interface WebhookPayload {
   };
 }
 
-// Store for SSE connections
-const sseConnections = new Map<string, Response>();
+// Store for SSE connections (reserved for future use)
+// const sseConnections = new Map<string, Response>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,11 +75,7 @@ export async function POST(request: NextRequest) {
         break;
         
       case 'ONRAMP':
-        // TODO: Implement onramp webhook handling
-        logger.info('Onramp webhook received', { 
-          status: body.status,
-          referenceId: body.referenceId 
-        });
+        await handleOnrampWebhook(body as OnrampWebhookPayload);
         break;
         
       case 'OFFRAMP':
@@ -137,6 +135,117 @@ async function handleKycRedirect(payload: WebhookPayload) {
     
   } catch (error) {
     logger.error('Error handling KYC_REDIRECT webhook', error);
+  }
+}
+
+/**
+ * Handle ONRAMP webhook events
+ */
+async function handleOnrampWebhook(payload: OnrampWebhookPayload) {
+  try {
+    logger.info('Processing ONRAMP webhook', {
+      referenceId: payload.referenceId,
+      status: payload.status,
+      cryptoAmount: payload.metadata.cryptoAmount,
+      cryptoCurrency: payload.metadata.cryptoCurrency,
+      txHash: payload.metadata.txHash
+    });
+    
+    // Try to find the user associated with this transaction
+    // First, try to find by the destination wallet address
+    let userId: string | undefined;
+    let customerId: string | undefined;
+    
+    // TODO: Implement user lookup by wallet address or other means
+    // For now, we'll update the transaction without user linking
+    
+    // Update transaction status in database
+    const transaction = await TransactionService.updateTransactionFromOnrampWebhook(
+      payload,
+      userId,
+      customerId
+    );
+    
+    // Emit SSE event for real-time updates
+    if (customerId) {
+      await emitTransactionSSEEvent(customerId, {
+        type: 'TRANSACTION_UPDATE',
+        action: 'status_change',
+        referenceId: payload.referenceId,
+        status: transaction.status,
+        txHash: payload.metadata.txHash,
+        failReason: payload.metadata.failReason,
+        metadata: {
+          cryptoAmount: payload.metadata.cryptoAmount,
+          fiatAmount: payload.metadata.fiatAmountSent,
+          step: getOnrampStep(payload.status),
+          totalSteps: 4
+        }
+      });
+    }
+    
+    logger.info('ONRAMP webhook processed successfully', {
+      referenceId: payload.referenceId,
+      status: payload.status,
+      transactionStatus: transaction.status
+    });
+    
+  } catch (error) {
+    logger.error('Error handling ONRAMP webhook', {
+      referenceId: payload.referenceId,
+      status: payload.status,
+      error
+    });
+    throw error;
+  }
+}
+
+/**
+ * Get step number for ONRAMP progress (1-4)
+ */
+function getOnrampStep(status: OnrampWebhookPayload['status']): number {
+  switch (status) {
+    case 'FIAT_DEPOSIT_RECEIVED': return 1;
+    case 'TRADE_COMPLETED': return 2;
+    case 'ON_CHAIN_INITIATED': return 3;
+    case 'ON_CHAIN_COMPLETED': return 4;
+    case 'FAILED': return 0;
+    default: return 0;
+  }
+}
+
+/**
+ * Emit transaction-specific SSE event
+ */
+async function emitTransactionSSEEvent(customerId: string, eventData: TransactionSSEEvent) {
+  try {
+    // Store the event in MongoDB for the user session
+    const db = await getDb();
+    const usersCollection = db.collection(COLLECTIONS.USERS);
+    
+    // Update the user document with the SSE event
+    await usersCollection.updateOne(
+      { customerId },
+      { 
+        $push: { 
+          sseEvents: {
+            ...eventData,
+            timestamp: new Date(),
+            eventId: `sse_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+          }
+        }
+      } as any // MongoDB typing issue with dynamic push operations
+    );
+    
+    logger.info('Transaction SSE event stored', { 
+      customerId, 
+      eventType: eventData.type,
+      referenceId: eventData.referenceId,
+      status: eventData.status
+    });
+    
+  } catch (error) {
+    logger.error('Error storing transaction SSE event', error);
   }
 }
 
@@ -215,10 +324,10 @@ async function emitSSEEvent(customerId: string, eventData: any) {
           sseEvents: {
             ...eventData,
             timestamp: new Date(),
-            eventId: `sse_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            eventId: `sse_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
           }
         }
-      }
+      } as any // MongoDB typing issue with dynamic push operations
     );
     
     logger.info('SSE event stored in database', { customerId, eventType: eventData.type });

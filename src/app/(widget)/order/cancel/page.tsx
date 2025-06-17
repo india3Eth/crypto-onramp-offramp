@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { XCircle, ArrowLeft, Home } from "lucide-react"
 import { useEffect, useState } from "react"
+import { CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 export default function OrderCancelPage() {
   const router = useRouter()
@@ -18,7 +19,6 @@ export default function OrderCancelPage() {
     
     // If we're in an iframe, send a message to the parent window
     if (inIframe) {
-      console.log("Cancel page loaded in iframe, notifying parent")
       try {
         // Tell the parent window that we've reached the cancel page
         window.parent.postMessage({ status: "cancelled" }, "*")
@@ -34,7 +34,7 @@ export default function OrderCancelPage() {
           }, "*")
         }
       } catch (e) {
-        console.error("Error sending message to parent:", e)
+        // Error sending message to parent - expected in some environments
       }
     }
 
@@ -64,7 +64,7 @@ export default function OrderCancelPage() {
   
   return (
     <div className="space-y-6">
-      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-red-50">
+      <Card className={`${CARD_BRUTALIST_STYLE.replace('bg-white', 'bg-red-50')}`}>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center border-2 border-black">
