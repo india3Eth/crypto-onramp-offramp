@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { refreshKycStatus } from '@/app/actions/kyc/kyc-status';
+import type { KycLimits } from '@/types/kyc';
 
 interface UseProfileKycProps {
   user: any;
@@ -12,6 +13,7 @@ export function useProfileKyc({ user, refreshUser, enabled = true }: UseProfileK
   const [error, setError] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(null);
+  const [kycLimits, setKycLimits] = useState<KycLimits | null>(null);
   
   // Use refs to prevent multiple simultaneous calls
   const isRefreshingRef = useRef(false);
@@ -45,6 +47,11 @@ export function useProfileKyc({ user, refreshUser, enabled = true }: UseProfileK
           level: result.kycLevel,
           limits: result.kycLimits
         });
+        
+        // Store KYC limits data
+        if (result.kycLimits) {
+          setKycLimits(result.kycLimits);
+        }
         
         // Refresh user data to get updated KYC status from database
         await refreshUser();
@@ -84,6 +91,7 @@ export function useProfileKyc({ user, refreshUser, enabled = true }: UseProfileK
         setHasInitialized(false);
         setError(null);
         setLastRefreshTime(null);
+        setKycLimits(null);
       }
 
       // Only initialize if not already done and enabled
@@ -120,6 +128,7 @@ export function useProfileKyc({ user, refreshUser, enabled = true }: UseProfileK
     error,
     hasInitialized,
     lastRefreshTime,
+    kycLimits,
     refreshKyc: manualRefresh,
     clearError: () => setError(null)
   };
