@@ -15,10 +15,14 @@ A NextJS application providing a white-labeled interface for buying and selling 
 - **Cryptocurrency Exchange**: 
   - On-ramp (Buy crypto with fiat)
   - Off-ramp (Sell crypto for fiat)
+- **Transaction History**: Complete transaction management system
+  - View past buy/sell transactions with detailed breakdowns
+  - Copy functionality for transaction IDs and blockchain hashes
 - **Real-time Quotes**: Get up-to-date exchange rates
 - **Multiple Payment Methods**: Support for various fiat payment options
 - **Multiple Cryptocurrencies**: Support for various crypto assets
 - **Admin Dashboard**: Manage crypto assets and payment methods
+- **Modern Mobile-First UI**: Responsive design optimized for mobile devices
 
 ## 📋 Requirements
 
@@ -90,7 +94,16 @@ yarn dev
 │   ├── app/            # Next.js App Router
 │   │   ├── (admin)/    # Admin routes
 │   │   ├── (widget)/   # Main app routes
-│   │   ├── actions/    # Server actions
+│   │   │   ├── transactions/  # Transaction history page
+│   │   │   ├── profile/       # User profile
+│   │   │   ├── kyc/          # KYC verification
+│   │   │   └── order/        # Order management
+│   │   ├── actions/    # Server actions (domain-organized)
+│   │   │   ├── admin/        # Admin management actions
+│   │   │   ├── auth/         # Authentication actions  
+│   │   │   ├── exchange/     # Transaction & quote actions
+│   │   │   ├── kyc/          # KYC verification actions
+│   │   │   └── config/       # Configuration actions
 │   │   ├── api/        # API routes
 │   │   └── globals.css # Global styles
 │   ├── components/     # React components
@@ -98,15 +111,29 @@ yarn dev
 │   │   ├── customer/   # Customer components
 │   │   ├── exchange/   # Exchange components
 │   │   ├── kyc/        # KYC components
+│   │   ├── transactions/ # Transaction history components
+│   │   ├── profile/    # Profile components
 │   │   ├── ui/         # UI components
 │   │   └── user/       # User components
-│   ├── hooks/          # Custom React hooks
+│   ├── hooks/          # Custom React hooks (domain-organized)
+│   │   ├── admin/      # Admin-specific hooks
+│   │   ├── auth/       # Authentication hooks
+│   │   ├── exchange/   # Exchange & transaction hooks
+│   │   ├── profile/    # Profile management hooks
+│   │   └── common/     # Common utility hooks
 │   ├── lib/            # Library code
 │   ├── middleware/     # Next.js middleware
 │   ├── models/         # Data models
 │   ├── services/       # Service layer
-│   ├── types/          # TypeScript type definitions
-│   └── utils/          # Utility functions
+│   ├── types/          # TypeScript type definitions (domain-organized)
+│   │   ├── admin/      # Admin types
+│   │   ├── exchange/   # Exchange & transaction types
+│   │   └── kyc/        # KYC types
+│   └── utils/          # Utility functions (domain-organized)
+│       ├── auth/       # Authentication utilities
+│       ├── crypto/     # Cryptographic utilities
+│       ├── config/     # Configuration utilities
+│       └── common/     # Common utilities
 ├── .env.local          # Environment variables (create this)
 ├── .gitignore          # Git ignore file
 ├── components.json     # ShadCN UI components config
@@ -118,7 +145,7 @@ yarn dev
 
 ## 📖 API Documentation
 
-This project integrates with the Unlimit White Label API. Key endpoints include:
+This project's Key endpoints include:
 
 ### Authentication
 - `POST /api/auth/login`: Request OTP
@@ -138,26 +165,40 @@ This project integrates with the Unlimit White Label API. Key endpoints include:
 - `GET /api/crypto/countries`: Get supported countries
 
 ### Server Actions
+
+**Authentication & Customer Management:**
 - `createCustomer`: Create customer profile
 - `submitKycLevel1`: Submit basic KYC information
 - `getKycWidgetUrl`: Get URL for KYC widget
+
+**Exchange & Transaction Management:**
 - `createQuote`: Create exchange quote
+- `getOnrampTransactions`: Fetch buy transaction history
+- `getOfframpTransactions`: Fetch sell transaction history
+
+**Admin Management:**
 - `updateCryptoStatus`: Update crypto status (admin)
 - `updatePaymentMethodStatus`: Update payment method status (admin)
+
+### External API Integration
+
+**Transaction History:**
+- `GET /v1/external/onramp`: Retrieve onramp transaction history
+- `GET /v1/external/offramp`: Retrieve offramp transaction history
 
 ## 🔍 To Complete
 
 The project needs integration with the order creation API to finalize transactions:
 
-1. Implement the onramp order creation endpoint:
-   - `POST /v1/external/onramp`
-   - This endpoint initiates fiat-to-crypto transactions
+1. **Order Creation Integration:**
+   - Implement `POST /v1/external/offramp` endpoint for crypto-to-fiat transactions
 
-2. Implement the offramp order creation endpoint:
-   - `POST /v1/external/offramp`
-   - This endpoint initiates crypto-to-fiat transactions
+2. **Payment Processing:**
+   - Add webhook handling for payment status updates
 
-3. Add transaction history functionality to display past orders
+3. **Enhanced Features:**
+   - Push notifications for transaction status updates
+   - Advanced filtering and search in transaction history
 
 ## 🤝 Contributing
 
@@ -174,10 +215,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgements
 
+- [Unlimit API](https://docs.gatefi.com/)
 - [Next.js](https://nextjs.org/)
 - [React](https://reactjs.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [MongoDB](https://www.mongodb.com/)
 - [SendGrid](https://sendgrid.com/)
-- [Unlimit API](https://docs.gatefi.com/)
