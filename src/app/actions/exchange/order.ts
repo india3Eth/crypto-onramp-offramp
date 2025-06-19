@@ -12,6 +12,7 @@ interface CreateOrderResult {
   message: string;
   checkoutUrl?: string;
   transactionId?: string;
+  fiatPaymentInstructions?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 /**
@@ -96,12 +97,13 @@ export async function createOnrampOrder(
       checkoutUrl: orderResponse.checkoutUrl
     });
     
-    // Return success with checkout URL
+    // Return success with checkout URL and payment instructions
     return { 
       success: true, 
       message: "Order created successfully", 
       checkoutUrl: orderResponse.checkoutUrl,
-      transactionId: orderResponse.transaction.transactionId
+      transactionId: orderResponse.transaction.transactionId,
+      fiatPaymentInstructions: orderResponse.fiatPaymentInstructions
     };
   } catch (error) {
     logger.error("Error creating onramp order:", error);
@@ -186,7 +188,8 @@ export async function createOfframpOrder(
     return { 
       success: true, 
       message: "Order created successfully", 
-      transactionId: orderResponse.transaction.transactionId
+      transactionId: orderResponse.transaction.transactionId,
+      fiatPaymentInstructions: orderResponse.fiatPaymentInstructions
     };
   } catch (error) {
     logger.error("Error creating offramp order:", error);

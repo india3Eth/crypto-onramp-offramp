@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAuth } from "@/hooks/auth/use-auth"
-import { ArrowLeft, CheckCircle, ArrowRight, Clock, Copy, AlertCircle, RefreshCw } from "lucide-react"
+import { ArrowLeft, ArrowRight, Clock, Copy, AlertCircle, RefreshCw } from "lucide-react"
 import { FeeDisplay } from "@/components/exchange/fee-display"
 import { createOnrampOrder, createOfframpOrder } from "@/app/actions/exchange/order"
 import { createQuote } from "@/app/actions/exchange/quote"
 import { CheckoutIframe } from "@/components/order/checkout-iframe"
+import { PaymentInstructions } from "@/components/order/payment-instructions"
 import { CARD_BRUTALIST_STYLE, QUOTE_EXPIRY_MS } from "@/utils/common/constants"
 
 export default function OrderSummaryPage() {
@@ -21,6 +22,7 @@ export default function OrderSummaryPage() {
   const [error, setError] = useState<string | null>(null)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [transactionId, setTransactionId] = useState<string | null>(null)
+  const [fiatPaymentInstructions, setFiatPaymentInstructions] = useState<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
   const [isRefreshingQuote, setIsRefreshingQuote] = useState(false)
   const [quoteExpiryTime, setQuoteExpiryTime] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
@@ -85,34 +87,46 @@ export default function OrderSummaryPage() {
       const quoteData = JSON.parse(savedQuote)
       setOrder(quoteData)
       
+      // Check for existing payment instructions session
+      const savedPaymentInstructions = localStorage.getItem('paymentInstructions')
+      if (savedPaymentInstructions) {
+        const paymentData = JSON.parse(savedPaymentInstructions)
+        // Restore payment instructions if they match the current order
+        if (paymentData.orderId === quoteData.quoteId) {
+          setFiatPaymentInstructions(paymentData.instructions)
+          setTransactionId(paymentData.transactionId)
+        } else {
+          // Clear stale payment instructions
+          localStorage.removeItem('paymentInstructions')
+        }
+      }
+
+      // Check for existing checkout session
+      const savedCheckoutSession = localStorage.getItem('checkoutSession')
+      if (savedCheckoutSession) {
+        const checkoutData = JSON.parse(savedCheckoutSession)
+        // Restore checkout URL if it matches the current order
+        if (checkoutData.orderId === quoteData.quoteId) {
+          setCheckoutUrl(checkoutData.checkoutUrl)
+          setTransactionId(checkoutData.transactionId)
+        } else {
+          // Clear stale checkout session
+          localStorage.removeItem('checkoutSession')
+        }
+      }
+      
       // If no deposit address is set in the order, redirect to wallet address page
-      if (!quoteData.depositAddress && !isSubmitting && !checkoutUrl) {
+      if (!quoteData.depositAddress && !isSubmitting && !checkoutUrl && !fiatPaymentInstructions) {
         router.push('/wallet-address')
       }
     } else {
-      // If no order data, redirect to exchange
-      router.push('/')
-    }
-  }, [router, isSubmitting, checkoutUrl])
-
-  // Countdown timer for quote expiry
-  useEffect(() => {
-    if (!quoteExpiryTime) return
-    
-    const interval = setInterval(() => {
-      const now = Date.now()
-      const remaining = Math.max(0, quoteExpiryTime - now)
-      
-      setTimeRemaining(Math.ceil(remaining / 1000))
-      
-      // Auto refresh when time is up
-      if (remaining <= 0 && !isRefreshingQuote) {
-        refreshQuote()
+      // Only redirect to exchange if we're not currently submitting or showing payment UI
+      if (!isSubmitting && !checkoutUrl && !fiatPaymentInstructions) {
+        console.log('No order data found, redirecting to exchange...')
+        router.push('/')
       }
-    }, 1000)
-    
-    return () => clearInterval(interval)
-  }, [quoteExpiryTime, isRefreshingQuote])
+    }
+  }, [router])
 
   // Function to refresh the quote
   const refreshQuote = useCallback(async () => {
@@ -161,6 +175,25 @@ export default function OrderSummaryPage() {
     }
   }, [order, isRefreshingQuote])
 
+  // Countdown timer for quote expiry
+  useEffect(() => {
+    if (!quoteExpiryTime) return
+    
+    const interval = setInterval(() => {
+      const now = Date.now()
+      const remaining = Math.max(0, quoteExpiryTime - now)
+      
+      setTimeRemaining(Math.ceil(remaining / 1000))
+      
+      // Auto refresh when time is up
+      if (remaining <= 0 && !isRefreshingQuote) {
+        refreshQuote()
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [quoteExpiryTime, isRefreshingQuote, refreshQuote])
+
   // Handle order submission
   const handleSubmitOrder = async () => {
     try {
@@ -205,6 +238,19 @@ export default function OrderSummaryPage() {
           orderId: currentOrderData.quoteId
         }))
       }
+
+      // Store fiat payment instructions if present
+      if (result.fiatPaymentInstructions) {
+        setFiatPaymentInstructions(result.fiatPaymentInstructions)
+        
+        // Store payment instructions in localStorage
+        localStorage.setItem('paymentInstructions', JSON.stringify({
+          instructions: result.fiatPaymentInstructions,
+          transactionId: result.transactionId,
+          timestamp: Date.now(),
+          orderId: currentOrderData.quoteId
+        }))
+      }
       
       if (result.transactionId) {
         setTransactionId(result.transactionId)
@@ -217,11 +263,6 @@ export default function OrderSummaryPage() {
         localStorage.setItem('currentQuote', JSON.stringify(updatedOrder))
       }
       
-      // If this is an offramp (sell) order, or no checkout URL is provided,
-      // redirect to success page directly
-      if (currentOrderData.mode === "sell" || !result.checkoutUrl) {
-        router.push('/order/success')
-      }
       
     } catch (error) {
       console.error("Error submitting order:", error)
@@ -249,6 +290,15 @@ export default function OrderSummaryPage() {
     // Clear the checkout URL to go back to the order summary
     setCheckoutUrl(null)
   }
+
+  // Handle back from payment instructions
+  const handleBackFromPaymentInstructions = () => {
+    // Remove the payment instructions from localStorage
+    localStorage.removeItem('paymentInstructions')
+    // Clear the payment instructions to go back to the order summary
+    setFiatPaymentInstructions(null)
+  }
+
   
   // If loading or no order data, show loading spinner
   if (loading || !order) {
@@ -256,6 +306,17 @@ export default function OrderSummaryPage() {
       <div className="flex justify-center items-center p-12">
         <LoadingSpinner text="Loading order details..." />
       </div>
+    )
+  }
+
+  // If we have fiat payment instructions, show payment instructions
+  if (fiatPaymentInstructions) {
+    return (
+      <PaymentInstructions
+        paymentInstructions={fiatPaymentInstructions}
+        orderData={order}
+        onBack={handleBackFromPaymentInstructions}
+      />
     )
   }
 

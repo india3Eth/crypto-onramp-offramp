@@ -115,10 +115,14 @@ export default function KycLimitCheckPage() {
     )
   }
 
-  // If no limit check result or limits are not exceeded, redirect (this is a fallback)
+  // If no limit check result or limits are not exceeded, return loading state
+  // (redirect is handled in the main useEffect above)
   if (!limitCheckResult || !limitCheckResult.limitExceeded) {
-    router.push('/wallet-address')
-    return null
+    return (
+      <div className="flex justify-center items-center p-12">
+        <LoadingSpinner text="Redirecting..." />
+      </div>
+    )
   }
 
   // If we get here, show the KYC limit check component

@@ -12,6 +12,7 @@ export default function OrderSuccessPage() {
   const router = useRouter()
   const [isInIframe, setIsInIframe] = useState(false)
   const [referenceId, setReferenceId] = useState<string | null>(null)
+  const [isPaymentSent, setIsPaymentSent] = useState(false)
   
   // Get transaction details if we have a reference ID
   const { transaction, isLoading: isLoadingTransaction } = useTransactionDetails(referenceId || undefined)
@@ -22,20 +23,27 @@ export default function OrderSuccessPage() {
     const inIframe = window !== window.parent
     setIsInIframe(inIframe)
     
+    // Check URL parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    const orderType = urlParams.get('type')
+    console.log("Order type:", orderType)
+    const orderMd = urlParams.get('OrderMd')
+    const refId = urlParams.get('referenceId') || orderMd
+    
+    // Set payment sent flag if this is a payment instruction success
+    if (orderType === 'payment-sent') {
+      setIsPaymentSent(true)
+    }
+    
+    if (refId) {
+      setReferenceId(refId)
+    }
+    
     // If we're in an iframe, send a message to the parent window
     if (inIframe) {
       try {
         // Tell the parent window that we've reached the success page
         window.parent.postMessage({ status: "success" }, "*")
-        
-        // Extract reference ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search)
-    const orderMd = urlParams.get('OrderMd')
-    const refId = urlParams.get('referenceId') || orderMd
-    
-    if (refId) {
-      setReferenceId(refId)
-    }
         
         // Also attempt to send specific data from the URL if available
         if (orderMd) {
@@ -52,9 +60,12 @@ export default function OrderSuccessPage() {
     }
     
     // If we reached this page directly, clean up any leftover order data
-    if (!inIframe) {
+    // For payment-sent orders, always clear localStorage
+    // For regular orders, only clear if not in iframe
+    if (!inIframe || orderType === 'payment-sent') {
       localStorage.removeItem('currentQuote')
       localStorage.removeItem('checkoutSession')
+      localStorage.removeItem('paymentInstructions')
     }
   }, [])
   
@@ -86,11 +97,19 @@ export default function OrderSuccessPage() {
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             
-            <h1 className="text-2xl font-bold">Order Complete!</h1>
+            <h1 className="text-2xl font-bold">
+              {isPaymentSent ? "Order Successfully Placed!" : "Order Complete!"}
+            </h1>
             
             <p className="text-gray-600">
-              Your transaction has been successfully processed.
-              {!transaction && "You will receive a confirmation email shortly."}
+              {isPaymentSent ? (
+                "Thank you for confirming your bank transfer. We will process your crypto purchase once we receive your payment. You will receive a confirmation email shortly."
+              ) : (
+                <>
+                  Your transaction has been successfully processed.
+                  {!transaction && " You will receive a confirmation email shortly."}
+                </>
+              )}
             </p>
             
             {/* Transaction Details */}
@@ -154,23 +173,7 @@ export default function OrderSuccessPage() {
               </div>
             )}
             
-            <div className="w-full space-y-3 mt-4">
-              <Button
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                onClick={() => router.push('/')}
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-              
-              <Button
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
-                onClick={() => router.push('/profile')}
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
-                View My Profile
-              </Button>
-            </div>
+            
           </div>
         </CardContent>
       </Card>
