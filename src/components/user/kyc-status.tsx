@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Shield, AlertCircle, Clock, CheckCircle, Loader2 } from "lucide-react"
+import { Shield, AlertCircle, Clock, CheckCircle, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { submitKycForReviewPublic } from "@/app/actions/kyc/kyc"
 
@@ -15,6 +15,7 @@ export function KycStatus({ status, level, className = "", onRefresh }: KycStatu
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Handle submit for review
   const handleSubmitForReview = async () => {
@@ -37,6 +38,21 @@ export function KycStatus({ status, level, className = "", onRefresh }: KycStatu
       setSubmitError(error instanceof Error ? error.message : "An unexpected error occurred")
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Handle manual refresh for pending status
+  const handleRefresh = async () => {
+    if (!onRefresh) return
+    
+    setIsRefreshing(true)
+    
+    try {
+      await onRefresh()
+    } catch (error) {
+      console.error("Error refreshing KYC status:", error)
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -99,9 +115,21 @@ export function KycStatus({ status, level, className = "", onRefresh }: KycStatu
 
   if (status === 'PENDING') {
     return (
-      <div className={`flex items-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 ${className}`}>
-        <Clock className="h-5 w-5 text-yellow-500 mr-2" />
-        <span className="font-medium">Verification in progress</span>
+      <div className={`flex items-center justify-between p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 ${className}`}>
+        <div className="flex items-center">
+          <Clock className="h-5 w-5 text-yellow-500 mr-2" />
+          <span className="font-medium">Verification in progress</span>
+        </div>
+        {onRefresh && (
+          <Button 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="ml-4 bg-yellow-500 hover:bg-yellow-600"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
       </div>
     )
   }
