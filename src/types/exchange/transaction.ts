@@ -66,7 +66,9 @@ export interface OfframpTransaction {
   chain: string;
   quote: TransactionQuote;
   fiatAccountId: string;
-  depositAddress?: string;
+  depositAddress: string;
+  expiration: string;
+  memo?: string;
 }
 
 // API response interfaces

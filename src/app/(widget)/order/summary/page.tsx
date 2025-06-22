@@ -12,6 +12,8 @@ import { createOnrampOrder, createOfframpOrder } from "@/app/actions/exchange/or
 import { createQuote } from "@/app/actions/exchange/quote"
 import { CheckoutIframe } from "@/components/order/checkout-iframe"
 import { PaymentInstructions } from "@/components/order/payment-instructions"
+import { CryptoDepositScreen } from "@/components/order/crypto-deposit-screen"
+import { FiatAccountSelector } from "@/components/exchange/fiat-account-selector"
 import { CARD_BRUTALIST_STYLE, QUOTE_EXPIRY_MS } from "@/utils/common/constants"
 
 export default function OrderSummaryPage() {
@@ -21,11 +23,14 @@ export default function OrderSummaryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
-  const [transactionId, setTransactionId] = useState<string | null>(null)
+  const [, setTransactionId] = useState<string | null>(null)
   const [fiatPaymentInstructions, setFiatPaymentInstructions] = useState<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
   const [isRefreshingQuote, setIsRefreshingQuote] = useState(false)
   const [quoteExpiryTime, setQuoteExpiryTime] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+  const [selectedFiatAccountId, setSelectedFiatAccountId] = useState<string>("")
+  const [showFiatAccountSelection, setShowFiatAccountSelection] = useState(false)
+  const [cryptoDepositData, setCryptoDepositData] = useState<any>(null)
   
   // Check for cancel parameter in URL
   useEffect(() => {
@@ -194,6 +199,20 @@ export default function OrderSummaryPage() {
     return () => clearInterval(interval)
   }, [quoteExpiryTime, isRefreshingQuote, refreshQuote])
 
+  // Check if we should show fiat account selection
+  const shouldShowFiatAccountSelection = () => {
+    return order?.mode === "sell" && !selectedFiatAccountId && !showFiatAccountSelection
+  }
+
+  // Handle proceeding to fiat account selection
+  const handleProceedToFiatAccount = () => {
+    if (order?.mode === "sell") {
+      setShowFiatAccountSelection(true)
+    } else {
+      handleSubmitOrder()
+    }
+  }
+
   // Handle order submission
   const handleSubmitOrder = async () => {
     try {
@@ -202,6 +221,11 @@ export default function OrderSummaryPage() {
       
       if (!order) {
         throw new Error("Order data not found")
+      }
+
+      // For offramp orders, check if fiat account is selected
+      if (order.mode === "sell" && !selectedFiatAccountId) {
+        throw new Error("Please select a fiat account to receive funds")
       }
       
       // First refresh the quote to ensure we have a fresh quote ID
@@ -212,6 +236,11 @@ export default function OrderSummaryPage() {
       
       if (!currentOrderData.quoteId) {
         throw new Error("Could not get a fresh quote ID")
+      }
+
+      // Add fiat account ID for offramp orders
+      if (order.mode === "sell") {
+        currentOrderData.fiatAccountId = selectedFiatAccountId
       }
       
       // Determine which API to call based on mode (buy/sell)
@@ -225,8 +254,24 @@ export default function OrderSummaryPage() {
       if (!result.success) {
         throw new Error(result.message || "Failed to create order")
       }
+
+      // For offramp orders, show crypto deposit screen
+      if (currentOrderData.mode === "sell" && result.transactionId) {
+        const depositData = {
+          transactionId: result.transactionId,
+          fromAmount: currentOrderData.fromAmount,
+          fromCurrency: currentOrderData.fromCurrency,
+          toCurrency: currentOrderData.toCurrency,
+          chain: currentOrderData.chain,
+          depositAddress: result.depositAddress || "",
+          expiration: result.expiration || new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes default
+          memo: result.memo || ""
+        }
+        setCryptoDepositData(depositData)
+        return
+      }
       
-      // Store the checkout URL and transaction ID
+      // Store the checkout URL and transaction ID (for onramp orders)
       if (result.checkoutUrl) {
         setCheckoutUrl(result.checkoutUrl)
         
@@ -299,12 +344,78 @@ export default function OrderSummaryPage() {
     setFiatPaymentInstructions(null)
   }
 
-  
+  // Handle crypto deposit screen actions
+  const handleCryptoDepositCancel = () => {
+    setCryptoDepositData(null)
+    // Optionally redirect back to main page
+    router.push('/')
+  }
+
+  const handleCryptoDepositConfirm = () => {
+    // Clear crypto deposit data and redirect to success
+    setCryptoDepositData(null)
+    localStorage.removeItem('currentQuote')
+    router.replace('/order/success')
+  }
+
+  // Handle fiat account selection
+  const handleFiatAccountSelect = (accountId: string) => {
+    setSelectedFiatAccountId(accountId)
+  }
+
+  const handleFiatAccountBack = () => {
+    setShowFiatAccountSelection(false)
+  }
+
   // If loading or no order data, show loading spinner
   if (loading || !order) {
     return (
       <div className="flex justify-center items-center p-12">
         <LoadingSpinner text="Loading order details..." />
+      </div>
+    )
+  }
+
+  // If we have crypto deposit data (offramp), show crypto deposit screen
+  if (cryptoDepositData) {
+    return (
+      <CryptoDepositScreen
+        orderData={cryptoDepositData}
+        onCancel={handleCryptoDepositCancel}
+        onConfirmSent={handleCryptoDepositConfirm}
+      />
+    )
+  }
+
+  // If showing fiat account selection for offramp
+  if (showFiatAccountSelection) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center mb-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-2"
+            onClick={handleFiatAccountBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        </div>
+        
+        <FiatAccountSelector
+          selectedAccountId={selectedFiatAccountId}
+          onAccountSelect={handleFiatAccountSelect}
+        />
+
+        {selectedFiatAccountId && (
+          <Button
+            className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
+            onClick={() => setShowFiatAccountSelection(false)}
+          >
+            Continue with Selected Account
+          </Button>
+        )}
       </div>
     )
   }
@@ -443,7 +554,7 @@ export default function OrderSummaryPage() {
             <Button
               className="w-full bg-black text-white font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.8)] hover:translate-y-1 hover:translate-x-1 hover:shadow-none transition-all"
               disabled={isSubmitting || isRefreshingQuote || (timeRemaining !== null && timeRemaining <= 0)}
-              onClick={handleSubmitOrder}
+              onClick={shouldShowFiatAccountSelection() ? handleProceedToFiatAccount : handleSubmitOrder}
             >
               {isSubmitting ? (
                 <div className="flex items-center">
@@ -454,6 +565,11 @@ export default function OrderSummaryPage() {
                 <div className="flex items-center">
                   <RefreshCw className="animate-spin mr-2 h-4 w-4" />
                   Refreshing Quote...
+                </div>
+              ) : shouldShowFiatAccountSelection() ? (
+                <div className="flex items-center">
+                  Select Fiat Account
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </div>
               ) : (
                 <div className="flex items-center">

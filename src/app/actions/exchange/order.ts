@@ -13,6 +13,9 @@ interface CreateOrderResult {
   checkoutUrl?: string;
   transactionId?: string;
   fiatPaymentInstructions?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  depositAddress?: string;
+  expiration?: string;
+  memo?: string;
 }
 
 /**
@@ -61,7 +64,7 @@ export async function createOnrampOrder(
     }
     
     // Get base URL for redirect URLs
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const successUrl = `${baseUrl}/order/success`;
     const cancelUrl = `${baseUrl}/order/cancel`;
     
@@ -147,6 +150,14 @@ export async function createOfframpOrder(
         message: "KYC verification must be completed before creating orders."
       };
     }
+
+    // Validate fiat account ID for offramp orders
+    if (!quoteData.fiatAccountId) {
+      return {
+        success: false,
+        message: "Fiat account must be selected for offramp orders."
+      };
+    }
     
     // Get base URL for redirect URLs
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -164,7 +175,8 @@ export async function createOfframpOrder(
       customerId: user.customerId,
       successUrl,
       cancelUrl,
-      chain: quoteData.chain || ""
+      chain: quoteData.chain || "",
+      fiatAccountId: quoteData.fiatAccountId // Fiat account for receiving funds
     };
     
     logger.info(`Creating offramp order for customer: ${user.customerId}`, { 
@@ -179,17 +191,19 @@ export async function createOfframpOrder(
     
     // Call the order service to create the order with the server-generated device ID
     const orderResponse = await orderService.createOfframpOrder(orderRequest, deviceId);
-    
+    console.log("Offramp order response:", orderResponse);
     logger.info(`Offramp order created successfully`, {
-      transactionId: orderResponse.transaction.transactionId
+      transactionId: orderResponse.transactionId
     });
     
-    // Return success with checkout URL if available
+    // Return success with deposit information for crypto transfer
     return { 
       success: true, 
       message: "Order created successfully", 
-      transactionId: orderResponse.transaction.transactionId,
-      fiatPaymentInstructions: orderResponse.fiatPaymentInstructions
+      transactionId: orderResponse.transactionId,
+      depositAddress: orderResponse.depositAddress,
+      expiration: orderResponse.expiration,
+      memo: orderResponse.memo
     };
   } catch (error) {
     logger.error("Error creating offramp order:", error);

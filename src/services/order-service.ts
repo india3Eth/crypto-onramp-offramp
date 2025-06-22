@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import type { OnrampTransaction, OfframpTransaction } from '@/types/exchange';
+import type { OnrampTransaction } from '@/types/exchange';
 import { getDeviceId } from '@/utils/common/device-id';
 
 // API paths
@@ -55,9 +55,37 @@ export interface OnrampOrderResponse {
 }
 
 export interface OfframpOrderResponse {
-  transaction: OfframpTransaction;
-  fiatPaymentInstructions?: FiatPaymentInstructions;
-  expirationDate: string;
+  transactionId: string;
+  customerId: string;
+  createdAt: string;
+  updatedAt: string;
+  fromCurrency: string;
+  toCurrency: string;
+  fromAmount: string;
+  toAmount: string;
+  chain: string;
+  status: string;
+  fiatAccountId: string;
+  depositAddress: string;
+  memo?: string;
+  expiration: string;
+  quote: {
+    quoteId: string;
+    fromCurrency: string;
+    toCurrency: string;
+    toAmount: string;
+    fromAmount: string;
+    rate: string;
+    fees: Array<{
+      type: string;
+      amount: string;
+      currency: string;
+    }>;
+    chain: string;
+    paymentMethodType: string;
+    expiration: string;
+    metadata: Record<string, any>;
+  };
 }
 
 export class OrderService {
