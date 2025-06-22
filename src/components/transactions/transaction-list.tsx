@@ -21,8 +21,20 @@ export function TransactionList({ className = "" }: TransactionListProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Pagination state
+  const [onrampPagination, setOnrampPagination] = useState({
+    pageOffset: 0,
+    hasMore: false,
+    isLoadingMore: false
+  })
+  const [offrampPagination, setOfframpPagination] = useState({
+    pageOffset: 0,
+    hasMore: false,
+    isLoadingMore: false
+  })
 
-  // Load transactions
+  // Load transactions (initial load or refresh)
   const loadTransactions = async (showRefreshing = false) => {
     try {
       if (showRefreshing) {
@@ -32,20 +44,34 @@ export function TransactionList({ className = "" }: TransactionListProps) {
       }
       setError(null)
 
-      // Load both onramp and offramp transactions in parallel
+      // Reset pagination state for fresh load
+      setOnrampPagination({ pageOffset: 0, hasMore: false, isLoadingMore: false })
+      setOfframpPagination({ pageOffset: 0, hasMore: false, isLoadingMore: false })
+
+      // Load both onramp and offramp transactions in parallel (first page)
       const [onrampResult, offrampResult] = await Promise.all([
-        getOnrampTransactions(),
-        getOfframpTransactions()
+        getOnrampTransactions({ pageOffset: 0, pageSize: 20 }),
+        getOfframpTransactions({ pageOffset: 0, pageSize: 20 })
       ])
 
       if (onrampResult.success && onrampResult.transactions) {
         setOnrampTransactions(onrampResult.transactions)
+        setOnrampPagination({
+          pageOffset: 0,
+          hasMore: onrampResult.pagination?.hasMore || false,
+          isLoadingMore: false
+        })
       } else if (!onrampResult.success) {
         console.warn('Failed to load onramp transactions:', onrampResult.message)
       }
 
       if (offrampResult.success && offrampResult.transactions) {
         setOfframpTransactions(offrampResult.transactions)
+        setOfframpPagination({
+          pageOffset: 0,
+          hasMore: offrampResult.pagination?.hasMore || false,
+          isLoadingMore: false
+        })
       } else if (!offrampResult.success) {
         console.warn('Failed to load offramp transactions:', offrampResult.message)
       }
@@ -69,6 +95,66 @@ export function TransactionList({ className = "" }: TransactionListProps) {
     loadTransactions()
   }, [])
 
+  // Load more transactions for pagination
+  const loadMoreTransactions = async () => {
+    try {
+      const isOnramp = activeTab === 'onramp'
+      const currentPagination = isOnramp ? onrampPagination : offrampPagination
+      
+      if (!currentPagination.hasMore || currentPagination.isLoadingMore) {
+        return
+      }
+
+      // Set loading state for current tab
+      if (isOnramp) {
+        setOnrampPagination(prev => ({ ...prev, isLoadingMore: true }))
+      } else {
+        setOfframpPagination(prev => ({ ...prev, isLoadingMore: true }))
+      }
+
+      const nextPageOffset = currentPagination.pageOffset + 20
+      
+      const result = isOnramp 
+        ? await getOnrampTransactions({ pageOffset: nextPageOffset, pageSize: 20 })
+        : await getOfframpTransactions({ pageOffset: nextPageOffset, pageSize: 20 })
+
+      if (result.success && result.transactions) {
+        if (isOnramp) {
+          setOnrampTransactions(prev => [...prev, ...result.transactions as OnrampTransaction[]])
+          setOnrampPagination({
+            pageOffset: nextPageOffset,
+            hasMore: result.pagination?.hasMore || false,
+            isLoadingMore: false
+          })
+        } else {
+          setOfframpTransactions(prev => [...prev, ...result.transactions as OfframpTransaction[]])
+          setOfframpPagination({
+            pageOffset: nextPageOffset,
+            hasMore: result.pagination?.hasMore || false,
+            isLoadingMore: false
+          })
+        }
+      } else {
+        // Reset loading state on error
+        if (isOnramp) {
+          setOnrampPagination(prev => ({ ...prev, isLoadingMore: false }))
+        } else {
+          setOfframpPagination(prev => ({ ...prev, isLoadingMore: false }))
+        }
+        console.warn(`Failed to load more ${activeTab} transactions:`, result.message)
+      }
+
+    } catch (err) {
+      console.error('Error loading more transactions:', err)
+      // Reset loading state on error
+      if (activeTab === 'onramp') {
+        setOnrampPagination(prev => ({ ...prev, isLoadingMore: false }))
+      } else {
+        setOfframpPagination(prev => ({ ...prev, isLoadingMore: false }))
+      }
+    }
+  }
+
   // Handle refresh
   const handleRefresh = () => {
     loadTransactions(true)
@@ -80,6 +166,11 @@ export function TransactionList({ className = "" }: TransactionListProps) {
       return onrampTransactions
     }
     return offrampTransactions
+  }
+
+  // Get active pagination state
+  const getActivePagination = () => {
+    return activeTab === 'onramp' ? onrampPagination : offrampPagination
   }
 
   // Tab styling
@@ -197,14 +288,23 @@ export function TransactionList({ className = "" }: TransactionListProps) {
               />
             ))}
             
-            {/* Load More Button (for future pagination) */}
-            {activeTransactions.length >= 20 && (
+            {/* Load More Button */}
+            {getActivePagination().hasMore && (
               <div className="text-center pt-4">
                 <Button
                   variant="outline"
-                  className="border border-gray-200 hover:bg-gray-50 rounded-xl"
+                  className="border border-gray-200 hover:bg-gray-50 rounded-xl px-6 py-2.5 font-medium"
+                  onClick={loadMoreTransactions}
+                  disabled={getActivePagination().isLoadingMore}
                 >
-                  Load More
+                  {getActivePagination().isLoadingMore ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size={16} text="" />
+                      Loading...
+                    </div>
+                  ) : (
+                    "Load More"
+                  )}
                 </Button>
               </div>
             )}

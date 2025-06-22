@@ -12,7 +12,6 @@ import { useQuoteManager } from "@/hooks/exchange/use-quote-manager"
 // Components
 import { OptionsLoader } from "@/components/exchange/options-loader"
 import { QuoteContainer } from "@/components/exchange/quote-container"
-import { ConfigRefresher } from "@/components/admin/config-refresher"
 import { CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 export default function HomePage() {
@@ -90,8 +89,6 @@ export default function HomePage() {
             />
           </OptionsLoader>
           
-          <div className="border-t-2 border-gray-200 my-4"></div>
-          <ConfigRefresher />
         </div>
       </Card>
     </div>
