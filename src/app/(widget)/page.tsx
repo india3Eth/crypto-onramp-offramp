@@ -52,6 +52,7 @@ export default function HomePage() {
     quoteError,
     apiErrorDetails,
     lastQuoteTimestamp,
+    hasInitialQuote,
     fetchQuote,
     handleContinue
   } = useQuoteManager({
@@ -62,35 +63,30 @@ export default function HomePage() {
   })
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card className={`${CARD_BRUTALIST_STYLE} p-4`}>
-        <div className="space-y-6">
-          <OptionsLoader 
-            isLoading={isLoadingOptions} 
-            error={optionsError}
-            onRetry={() => window.location.reload()}
-          >
-            <QuoteContainer
-              mode={mode}
-              formData={formData}
-              fiatOptions={fiatOptions}
-              cryptoOptions={cryptoOptions}
-              paymentMethods={paymentMethods}
-              quote={quote}
-              isLoadingQuote={isLoadingQuote}
-              quoteError={quoteError}
-              apiErrorDetails={apiErrorDetails}
-              lastQuoteTimestamp={lastQuoteTimestamp}
-              onFormDataChange={setFormData}
-              onModeToggle={handleSwapCurrencies}
-              onLastModifiedFieldChange={setLastModifiedField}
-              onCreateQuote={fetchQuote}
-              onContinue={handleContinue}
-            />
-          </OptionsLoader>
-          
-        </div>
-      </Card>
-    </div>
+    <OptionsLoader 
+      isLoading={isLoadingOptions} 
+      isLoadingQuote={isLoadingQuote}
+      hasInitialQuote={hasInitialQuote}
+      error={optionsError}
+      onRetry={() => window.location.reload()}
+    >
+      <QuoteContainer
+        mode={mode}
+        formData={formData}
+        fiatOptions={fiatOptions}
+        cryptoOptions={cryptoOptions}
+        paymentMethods={paymentMethods}
+        quote={quote}
+        isLoadingQuote={isLoadingQuote}
+        quoteError={quoteError}
+        apiErrorDetails={apiErrorDetails}
+        lastQuoteTimestamp={lastQuoteTimestamp}
+        onFormDataChange={setFormData}
+        onModeToggle={handleSwapCurrencies}
+        onLastModifiedFieldChange={setLastModifiedField}
+        onCreateQuote={fetchQuote}
+        onContinue={handleContinue}
+      />
+    </OptionsLoader>
   )
 }

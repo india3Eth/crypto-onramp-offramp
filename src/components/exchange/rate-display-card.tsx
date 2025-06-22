@@ -22,7 +22,28 @@ export function RateDisplayCard({
   isRefreshing,
   onRefresh
 }: RateDisplayCardProps) {
-  if (!quote) return null
+  // Show skeleton when no quote data
+  if (!quote) {
+    return (
+      <div className="rounded-xl bg-blue-50 border border-blue-200 shadow-sm p-3">
+        <div className="flex items-center justify-between">
+          <div className="skeleton-gradient animate-skeleton h-4 w-32 rounded"></div>
+          
+          <div className="flex items-center gap-2">
+            <div className="skeleton-gradient animate-skeleton h-7 w-12 rounded-full"></div>
+            <div className="skeleton-gradient animate-skeleton h-8 w-8 rounded-full"></div>
+          </div>
+        </div>
+        
+        <div className="mt-2 pt-2 border-t border-blue-200">
+          <div className="space-y-1">
+            <div className="skeleton-gradient animate-skeleton h-3 w-24 rounded"></div>
+            <div className="skeleton-gradient animate-skeleton h-3 w-28 rounded"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const formatExchangeRate = () => {
     if (!quote.rate) return null;
@@ -45,7 +66,7 @@ export function RateDisplayCard({
   }
 
   return (
-    <div className="rounded-xl bg-blue-50 border border-blue-200 shadow-sm p-4">
+    <div className="rounded-xl bg-blue-50 border border-blue-200 shadow-sm p-3 fade-in">
       <div className="flex items-center justify-between">
         {formatExchangeRate()}
         

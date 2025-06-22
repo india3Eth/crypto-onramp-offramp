@@ -103,7 +103,7 @@ export function QuoteForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <QuoteFormHeader mode={mode} onModeToggle={onModeToggle} />
 
       {/* From currency (You Pay/Send) */}

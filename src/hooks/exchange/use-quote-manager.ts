@@ -22,6 +22,7 @@ export function useQuoteManager({
   const [apiErrorDetails, setApiErrorDetails] = useState<string | null>(null)
   const [quote, setQuote] = useState<{ rate?: string; fees?: Array<{ type: string; amount: string; currency: string }> } | null>(null)
   const [lastQuoteTimestamp, setLastQuoteTimestamp] = useState<number>(Date.now())
+  const [hasInitialQuote, setHasInitialQuote] = useState(false)
   
   const previousParamsRef = useRef<string>('')
   
@@ -70,6 +71,7 @@ export function useQuoteManager({
       
       setQuote(result);
       setLastQuoteTimestamp(Date.now());
+      setHasInitialQuote(true);
       previousParamsRef.current = JSON.stringify(quoteRequest);
       
     } catch (error) {
@@ -109,9 +111,14 @@ export function useQuoteManager({
       return;
     }
     
+    // For initial load with valid default values, fetch quote immediately
+    // Otherwise, use debounce for user input changes
+    const isInitialLoad = !hasInitialQuote && currentParams !== '';
+    const delay = isInitialLoad ? 100 : 2000;
+    
     const debounceTimer = setTimeout(async () => {
       fetchQuote();
-    }, 2000); 
+    }, delay); 
     
     return () => clearTimeout(debounceTimer);
   }, [
@@ -125,7 +132,8 @@ export function useQuoteManager({
     lastModifiedField,
     hasValidInputs,
     prepareQuoteRequest,
-    fetchQuote
+    fetchQuote,
+    hasInitialQuote
   ]);
   
   const handleContinue = (mode: "buy" | "sell") => {
@@ -155,6 +163,7 @@ export function useQuoteManager({
     quoteError,
     apiErrorDetails,
     lastQuoteTimestamp,
+    hasInitialQuote,
     fetchQuote,
     handleContinue
   }

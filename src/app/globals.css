@@ -82,6 +82,31 @@
     100% { transform: translateY(0px) rotate(0deg); }
   }
   
+  /* Enhanced skeleton animations */
+  .animate-skeleton {
+    animation: skeleton-shimmer 2s ease-in-out infinite;
+  }
+  
+  @keyframes skeleton-shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+  }
+  
+  .skeleton-gradient {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200px 100%;
+  }
+  
+  /* Smooth loading transitions */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
   /* Neo-brutalism shadows */
   .shadow-brutal-sm {
     box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.8);
