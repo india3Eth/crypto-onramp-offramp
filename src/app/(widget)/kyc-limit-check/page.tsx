@@ -12,7 +12,7 @@ import type { KycLimitCheckResult } from "@/types/kyc"
 export default function KycLimitCheckPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
-  const [isChecking, setIsChecking] = useState(true)
+  const [isChecking, setIsChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limitCheckResult, setLimitCheckResult] = useState<KycLimitCheckResult | null>(null)
 
