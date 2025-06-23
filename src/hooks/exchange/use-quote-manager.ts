@@ -136,7 +136,7 @@ export function useQuoteManager({
     hasInitialQuote
   ]);
   
-  const handleContinue = (mode: "buy" | "sell") => {
+  const handleContinue = (mode: "buy" | "sell", onNavigate?: (url: string) => void) => {
     if (quote) {
       const quoteData = {
         ...quote,
@@ -153,7 +153,13 @@ export function useQuoteManager({
       };
       
       localStorage.setItem('currentQuote', JSON.stringify(quoteData));
-      window.location.href = "/kyc-limit-check";
+      
+      // Use the navigation callback if provided, otherwise fallback to window.location
+      if (onNavigate) {
+        onNavigate("/kyc-limit-check");
+      } else {
+        window.location.href = "/kyc-limit-check";
+      }
     }
   };
 

@@ -6,6 +6,7 @@ import { Mail, AlertCircle, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { AuthSkeleton } from "@/components/ui/auth-skeleton"
 
 // Client component that uses useSearchParams
 function LoginContent() {
@@ -265,15 +266,10 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      <Suspense fallback={
-        <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] bg-white p-6 flex justify-center items-center" style={{height: "420px"}}>
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full inline-block mb-4"></div>
-            <p>Loading...</p>
-          </div>
-        </Card>
-      }>
-        <LoginContent />
+      <Suspense fallback={<AuthSkeleton variant="login" />}>
+        <div className="fade-in">
+          <LoginContent />
+        </div>
       </Suspense>
       
       {/* Demo helper - remove this in production */}

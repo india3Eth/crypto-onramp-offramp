@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/auth/use-auth"
 import { CreateCustomerForm } from "@/components/customer/create-customer-form"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { AuthSkeleton } from "@/components/ui/auth-skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, User } from "lucide-react"
@@ -20,13 +20,9 @@ export default function CreateCustomerPage() {
     }
   }, [user, router])
   
-  // If still loading, show loading spinner
+  // If still loading, show skeleton
   if (loading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text="Loading..." />
-      </div>
-    )
+    return <AuthSkeleton variant="generic" />
   }
   
   // If not logged in, show login prompt
@@ -53,7 +49,7 @@ export default function CreateCustomerPage() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       <div className="flex items-center mb-2">
         <Button 
           variant="ghost" 

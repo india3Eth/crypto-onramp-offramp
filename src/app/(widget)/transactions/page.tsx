@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { TransactionList } from "@/components/transactions/transaction-list"
 import { useAuth } from "@/hooks/auth/use-auth"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { AuthSkeleton } from "@/components/ui/auth-skeleton"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User, ArrowLeft } from "lucide-react"
@@ -14,13 +14,9 @@ export default function TransactionsPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  // Show loading spinner during initial load
+  // Show skeleton during initial load
   if (loading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text="Loading..." />
-      </div>
-    )
+    return <AuthSkeleton variant="generic" text="Loading transactions..." />
   }
 
   // If not logged in, show login prompt
@@ -70,7 +66,7 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="px-4 pb-6 max-w-md mx-auto">
+    <div className="px-4 pb-6 max-w-md mx-auto fade-in">
       <TransactionList />
     </div>
   )

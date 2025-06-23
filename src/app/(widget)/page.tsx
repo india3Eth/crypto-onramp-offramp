@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 
 // Custom hooks
@@ -15,6 +16,7 @@ import { QuoteContainer } from "@/components/exchange/quote-container"
 import { CARD_BRUTALIST_STYLE } from "@/utils/common/constants"
 
 export default function HomePage() {
+  const router = useRouter()
   // Start with basic state for mode since we need it for API calls
   const [mode, setMode] = useState<"buy" | "sell">("buy")
   
@@ -62,6 +64,10 @@ export default function HomePage() {
     setFormData
   })
 
+  const handleContinueWithRouter = (mode: "buy" | "sell") => {
+    handleContinue(mode, (url: string) => router.push(url))
+  }
+
   return (
     <OptionsLoader 
       isLoading={isLoadingOptions} 
@@ -85,7 +91,7 @@ export default function HomePage() {
         onModeToggle={handleSwapCurrencies}
         onLastModifiedFieldChange={setLastModifiedField}
         onCreateQuote={fetchQuote}
-        onContinue={handleContinue}
+        onContinue={handleContinueWithRouter}
       />
     </OptionsLoader>
   )

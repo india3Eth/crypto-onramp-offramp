@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { KycLimitCheck } from "@/components/kyc/kyc-limit-check"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { AuthSkeleton } from "@/components/ui/auth-skeleton"
+import { LimitCheckLoader } from "@/components/ui/limit-check-loader"
 import { useAuth } from "@/hooks/auth/use-auth"
 import { checkKycLimits } from "@/app/actions/kyc/kyc-limits"
 import type { KycLimitCheckResult } from "@/types/kyc"
@@ -90,13 +91,14 @@ export default function KycLimitCheckPage() {
     }
   }
 
-  // If still loading or checking, show loading spinner
-  if (loading || isChecking) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text="Checking transaction limits..." />
-      </div>
-    )
+  // If still loading auth, show auth skeleton
+  if (loading) {
+    return <AuthSkeleton variant="generic" text="Checking your account..." />
+  }
+
+  // If checking limits, show engaging limit check animation
+  if (isChecking) {
+    return <LimitCheckLoader text="Checking your transaction limits..." />
   }
 
   // If error occurred, show error message
@@ -115,30 +117,28 @@ export default function KycLimitCheckPage() {
     )
   }
 
-  // If no limit check result or limits are not exceeded, return loading state
+  // If no limit check result or limits are not exceeded, show transition state during redirect
   // (redirect is handled in the main useEffect above)
   if (!limitCheckResult || !limitCheckResult.limitExceeded) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text="Redirecting..." />
-      </div>
-    )
+    return <AuthSkeleton variant="generic" text="Redirecting to next step..." />
   }
 
-  // If we get here, show the KYC limit check component
+  // If we get here, show the KYC limit check component with smooth transition
   return (
-    <KycLimitCheck
-      currentAmount={limitCheckResult.currentAmount ?? 0}
-      maxAllowedAmount={limitCheckResult.maxAllowedAmount ?? 0}
-      currency={limitCheckResult.currency ?? ""}
-      baseCurrency={limitCheckResult.baseCurrency ?? ""}
-      exchangeRate={limitCheckResult.exchangeRate ?? 0}
-      currentLevel={limitCheckResult.currentLevel ?? ""}
-      nextLevel={limitCheckResult.nextLevel ?? ""}
-      period={limitCheckResult.period ?? ""}
-      remainingTransactions={limitCheckResult.remainingTransactions ?? 0}
-      onContinue={handleContinue}
-      onUpdateAmount={handleUpdateAmount}
-    />
+    <div className="fade-in">
+      <KycLimitCheck
+        currentAmount={limitCheckResult.currentAmount ?? 0}
+        maxAllowedAmount={limitCheckResult.maxAllowedAmount ?? 0}
+        currency={limitCheckResult.currency ?? ""}
+        baseCurrency={limitCheckResult.baseCurrency ?? ""}
+        exchangeRate={limitCheckResult.exchangeRate ?? 0}
+        currentLevel={limitCheckResult.currentLevel ?? ""}
+        nextLevel={limitCheckResult.nextLevel ?? ""}
+        period={limitCheckResult.period ?? ""}
+        remainingTransactions={limitCheckResult.remainingTransactions ?? 0}
+        onContinue={handleContinue}
+        onUpdateAmount={handleUpdateAmount}
+      />
+    </div>
   )
 }

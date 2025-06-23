@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, AlertCircle } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { AuthSkeleton } from "@/components/ui/auth-skeleton"
 import { useAuth } from "@/hooks/auth/use-auth"
 import { useProfileKyc } from "@/hooks/profile/use-profile-kyc"
 import { CreateCustomerForm } from "@/components/customer/create-customer-form" 
@@ -34,19 +35,9 @@ export default function ProfilePage() {
   const isPageLoading = loading || (user && user.customerId && !kycInitialized)
 
 
-  // Show loading spinner during initial page load
+  // Show profile skeleton during initial page load
   if (isPageLoading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <LoadingSpinner text={
-          loading 
-            ? "Loading profile..." 
-            : !kycInitialized 
-              ? "Updating verification status..." 
-              : "Loading..."
-        } />
-      </div>
-    )
+    return <AuthSkeleton variant="profile" />
   }
 
   // If not logged in, show login prompt
@@ -94,7 +85,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       {/* Compact Personal Information - Always show */}
       <CompactUserInfo user={user} />
 
