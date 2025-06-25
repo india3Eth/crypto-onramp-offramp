@@ -118,8 +118,8 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
     return `https://bscscan.com/tx/${txHash}`
   }
   
-  // Calculate total fees
-  const totalFees = transaction.quote.fees.reduce((sum, fee) => sum + parseFloat(fee.amount), 0)
+  // Calculate total fees (excluding markup fees)
+  const totalFees = transaction.quote.fees.filter(fee => fee.type !== "markupFee").reduce((sum, fee) => sum + parseFloat(fee.amount), 0)
   
   return (
     <div ref={cardRef} className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-200 overflow-hidden">
@@ -313,7 +313,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
             <div className="bg-white rounded-xl p-4">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Fees Breakdown</p>
               <div className="space-y-2">
-                {transaction.quote.fees.map((fee, index) => (
+                {transaction.quote.fees.filter(fee => fee.type !== "markupFee").map((fee, index) => (
                   <div key={index} className="flex justify-between items-center py-1">
                     <span className="text-sm text-gray-600 capitalize">{fee.type.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
                     <span className="text-sm font-medium text-gray-900">{formatAmount(fee.amount, fee.currency)}</span>
@@ -322,7 +322,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
                 <div className="border-t border-gray-200 pt-2 mt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold text-gray-900">Total Fees</span>
-                    <span className="text-sm font-bold text-gray-900">{formatAmount(totalFees.toString(), transaction.quote.fees[0]?.currency || 'USD')}</span>
+                    <span className="text-sm font-bold text-gray-900">{formatAmount(totalFees.toString(), transaction.quote.fees.filter(fee => fee.type !== "markupFee")[0]?.currency || 'USD')}</span>
                   </div>
                 </div>
               </div>
